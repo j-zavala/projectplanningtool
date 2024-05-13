@@ -1,7 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class AppService {
+export class AppService implements OnModuleInit {
+  constructor(private configService: ConfigService) {}
+
+  // TEMPORARY: just check if .env is being read correctly - success
+  onModuleInit() {
+    const host = this.configService.get<string>('DATABASE_USER');
+    console.log('database user env variable:', host);
+  }
+
   async getNames() {
     return {};
   }
