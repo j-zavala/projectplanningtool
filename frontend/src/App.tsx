@@ -6,7 +6,7 @@ import axios from "axios";
 function App() {
   const handleClick = async () => {
     const response = await axios.post("http://localhost:3002/name", {
-      name: "Johnny",
+      name: "Jet",
     });
     console.log("RESPONSE", response.data);
   };
