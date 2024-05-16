@@ -7,8 +7,8 @@ export class AppService implements OnModuleInit {
 
   // TEMPORARY: just check if .env is being read correctly - success
   onModuleInit() {
-    const host = this.configService.get<string>('DATABASE_USER');
-    console.log('database user env variable:', host);
+    const username = this.configService.get<string>('DATABASE_USERNAME');
+    console.log('database user env variable:', username);
   }
 
   async getNames() {
@@ -16,7 +16,7 @@ export class AppService implements OnModuleInit {
   }
 
   // async because we are going to use database.
-  async addName(name: string) {
+  async addName(name: object) {
     console.log('--->', name);
     return name;
   }

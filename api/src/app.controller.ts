@@ -8,7 +8,7 @@ export class AppController {
   // the decorator indicates that this method should respond
   // to POST requests at this path (/name)
   @Post('/name')
-  async addName(@Body() name: string) {
+  async addName(@Body() name: object) {
     return this.appService.addName(name);
   }
 
