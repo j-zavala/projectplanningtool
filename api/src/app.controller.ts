@@ -5,10 +5,8 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  // the decorator indicates that this method should respond
-  // to POST requests at this path (/name)
   @Post('/name')
-  async addName(@Body() name: object) {
+  async addName(@Body('name') name: string) {
     return this.appService.addName(name);
   }
 
