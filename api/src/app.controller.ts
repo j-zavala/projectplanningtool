@@ -5,10 +5,10 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Post('/name')
-  async addName(@Body('name') name: string) {
-    return this.appService.addName(name);
-  }
+  // @Post('/name')
+  // async addName(@Body('name') name: string) {
+  //   return this.appService.addName(name);
+  // }
 
   @Get()
   async getNames() {
