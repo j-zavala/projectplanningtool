@@ -2,15 +2,8 @@ import { registerAs } from '@nestjs/config';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { config as dotenvConfig } from 'dotenv';
 
+// Explicitly load environment variables
 dotenvConfig({ path: '.env' });
-
-console.log('typeorm.ts ========================');
-console.log('DATABASE_HOST:', process.env.DATABASE_HOST);
-console.log('DATABASE_PORT:', process.env.DATABASE_PORT);
-console.log('DATABASE_USERNAME:', process.env.DATABASE_USERNAME);
-console.log('DATABASE_PASSWORD:', process.env.DATABASE_PASSWORD);
-console.log('DATABASE_NAME:', process.env.DATABASE_NAME);
-console.log('typeorm.ts ========================');
 
 // Define the TypeORM config using env variables
 const config: DataSourceOptions = {
@@ -26,5 +19,5 @@ const config: DataSourceOptions = {
   logging: true,
 };
 
-export default registerAs('typeorm', () => config);
+export default registerAs('typeorm', (): DataSourceOptions => config);
 export const connectionSource = new DataSource(config);
