@@ -4,8 +4,8 @@ import { Box, Button, ChakraProvider, Input } from "@chakra-ui/react";
 import axios from "axios";
 
 function App() {
-  const [firstName, setFirstName] = useState("Jacob");
-  const [lastName, setLastName] = useState("Cobbs");
+  const [firstName, setFirstName] = useState("Luke");
+  const [lastName, setLastName] = useState("Abbott");
   // const [error, setError] = useState(""); // add error handling at some point
 
   const onChangeFirstName = (event: React.ChangeEvent<HTMLInputElement>) => {
