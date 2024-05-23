@@ -4,16 +4,22 @@ import { Box, Button, ChakraProvider, Input } from "@chakra-ui/react";
 import axios from "axios";
 
 function App() {
-  const [name, setName] = useState("Jacob");
+  const [firstName, setFirstName] = useState("Jacob");
+  const [lastName, setLastName] = useState("Cobbs");
   // const [error, setError] = useState(""); // add error handling at some point
 
-  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setName(event.target.value);
+  const onChangeFirstName = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFirstName(event.target.value);
+  };
+
+  const onChangeLastName = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLastName(event.target.value);
   };
 
   const handleClick = async () => {
     const response = await axios.post("http://localhost:3002/name", {
-      name,
+      firstName,
+      lastName,
     });
     console.log("RESPONSE", response.data);
   };
@@ -21,9 +27,16 @@ function App() {
   return (
     <ChakraProvider>
       <Box m={10} display="flex" gap={4}>
-        <Input placeholder="Please put your name..." onChange={onChange} />
+        <Input
+          placeholder="Please put your first name..."
+          onChange={onChangeFirstName}
+        />
+        <Input
+          placeholder="Please put your last name..."
+          onChange={onChangeLastName}
+        />
         <Button colorScheme="blue" onClick={handleClick}>
-          SUBMIT
+          ADD
         </Button>
       </Box>
     </ChakraProvider>
