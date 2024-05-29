@@ -10,7 +10,6 @@ export class AppController {
     @Body('firstName') firstName: string,
     @Body('lastName') lastName: string,
   ) {
-    console.log(firstName, lastName);
     return this.appService.addName(firstName, lastName);
   }
 
