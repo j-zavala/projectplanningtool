@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Text, Input, Button, FormLabel } from "@chakra-ui/react";
+import axios from 'axios';
 
 const SignUp: React.FC = () => {
     const [name, setName] = useState("");
@@ -29,10 +30,22 @@ const onPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
 const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Name: ", name);
-    console.log("Email: ", email);
-    console.log("Username: ", username);
-    console.log("Password: ", password);
+    console.log("POST request body: ", {
+        name,
+        email,
+        username,
+        password,
+    });
+    axios.post('http://localhost:3002/auth/sign-up', {
+        name,
+        email,
+        username,
+        password,
+    }).then((res) => {
+        console.log("RESPONSE:", res);
+    }).catch((error) => {
+        console.log("ERROR: ", error);
+    });
 }
 
   return (

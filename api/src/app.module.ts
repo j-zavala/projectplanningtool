@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -6,28 +6,29 @@ import { AppService } from './app.service';
 import { Name } from './name.entity';
 import typeorm from './config/typeorm';
 import { DataSourceOptions } from 'typeorm';
-// import { Logger } from '@nestjs/common';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [typeorm],
+      // load: [typeorm],
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (
-        configService: ConfigService,
-      ): Promise<DataSourceOptions> => {
-        const typeormConfig = configService.get('typeorm');
-        return {
-          ...typeormConfig,
-          autoLoadEntities: true,
-        };
-      },
-    }),
-    TypeOrmModule.forFeature([Name]),
+    // TypeOrmModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: async (
+    //     configService: ConfigService,
+    //   ): Promise<DataSourceOptions> => {
+    //     const typeormConfig = configService.get('typeorm');
+    //     return {
+    //       ...typeormConfig,
+    //       autoLoadEntities: true,
+    //     };
+    //   },
+    // }),
+    // TypeOrmModule.forFeature([Name]),
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
