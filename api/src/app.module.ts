@@ -12,22 +12,22 @@ import { AuthModule } from './auth/auth.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // load: [typeorm],
+      load: [typeorm],
     }),
-    // TypeOrmModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: async (
-    //     configService: ConfigService,
-    //   ): Promise<DataSourceOptions> => {
-    //     const typeormConfig = configService.get('typeorm');
-    //     return {
-    //       ...typeormConfig,
-    //       autoLoadEntities: true,
-    //     };
-    //   },
-    // }),
-    // TypeOrmModule.forFeature([Name]),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (
+        configService: ConfigService,
+      ): Promise<DataSourceOptions> => {
+        const typeormConfig = configService.get('typeorm');
+        return {
+          ...typeormConfig,
+          autoLoadEntities: true,
+        };
+      },
+    }),
+    TypeOrmModule.forFeature([Name]),
     AuthModule,
   ],
   controllers: [AppController],

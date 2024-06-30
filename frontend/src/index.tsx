@@ -5,6 +5,7 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import SignUp from "./Pages/Signup";
+import DIPSignUp from "./Pages/DIPSignup";
 import LogIn from "./Pages/LogIn";
 import { ChakraProvider } from "@chakra-ui/react";
 
@@ -16,6 +17,10 @@ const router = createBrowserRouter([
       {
         path: "sign-up",
         element: <SignUp />,
+      },
+      {
+        path: "dip-sign-up",
+        element: <DIPSignUp />,
       },
       {
         path: "log-in",
