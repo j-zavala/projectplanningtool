@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - week-5-in-progress
+      - main
 
 jobs:
   build-and-push-to-ecr:
