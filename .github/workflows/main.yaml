@@ -59,7 +59,7 @@ jobs:
           aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json | jq '.'
 
           echo "Filtering instances with Role tag 'backend-frontend':"
-          INSTANCE_IDS=$(aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json | jq -r '.[] | select(.[2][] | select(.Key == "Role" and .Value == "backend-frontend")) | .[0]')
+          INSTANCE_IDS=$(aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json | jq -r '.[] | select(.[2][] | select(.Key == "Role" and .Value == "backend-frontend")) | .[0]' | tr '\n' ' ')
           if [ -z "$INSTANCE_IDS" ]; then
             echo "No instances found with the tag Role=backend-frontend"
             exit 1
@@ -70,7 +70,7 @@ jobs:
 
       - name: Deploy to EC2 via SSM
         run: |
-          INSTANCE_IDS=$(echo ${{ env.INSTANCE_IDS }} | tr '\t' ',')
+          INSTANCE_IDS=${{ env.INSTANCE_IDS }}
           command_id=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceIds,Values=$INSTANCE_IDS" \
@@ -83,7 +83,7 @@ jobs:
 
           echo $command_id
 
-          for instance_id in $(echo $INSTANCE_IDS | tr ',' ' '); do
+          for instance_id in $INSTANCE_IDS; do
             aws ssm wait command-executed \
               --command-id $command_id \
               --instance-id $instance_id
