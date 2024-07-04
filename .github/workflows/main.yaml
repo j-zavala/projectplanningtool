@@ -28,19 +28,20 @@ jobs:
         run: |
           echo "ECR_REGISTRY=${{ steps.login-aws-ecr.outputs.registry }}" >> $GITHUB_ENV
           echo "ECR_REPOSITORY=${{ secrets.AWS_ECR_REPO }}" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}" >> $GITHUB_ENV
+          echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}" >> $GITHUB_ENV
 
       # Build and Push Frontend Docker Image
       - name: Build Frontend Docker Image to AWS ECR
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$IMAGE_TAG ./frontend
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
 
       # Build and Push Backend Docker Image
       - name: Build Backend Docker Image to AWS ECR
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:backend-$IMAGE_TAG ./api
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:backend-$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
 
       - name: Fetch EC2 Instance IDs
         id: fetch-ec2-instance-ids
