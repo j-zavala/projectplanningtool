@@ -65,7 +65,6 @@ jobs:
             exit 1
           fi
           echo "Matching instance IDs:"
-          INSTANCE_IDS=$(echo $INSTANCE_IDS | tr ' ' '\n')
           echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
 
       - name: Deploy to EC2 via SSM
