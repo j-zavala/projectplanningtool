@@ -4,8 +4,8 @@
 $(aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY)
 
 # Pull the latest images
-docker pull $ECR_REGISTRY/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG
-docker pull $ECR_REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG
+docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+# docker pull $ECR_REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG
 
 # Stop and remove old containers
 docker rm -f frontend backend
