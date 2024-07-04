@@ -63,11 +63,27 @@ jobs:
 
       - name: Deploy to EC2 via SSM
         run: |
-          aws ssm send-command \
+          INSTANCE_IDS=$(echo ${{ env.INSTANCE_IDS }} | tr '\t' ',')
+          command_id=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceIds,Values=${{ env.INSTANCE_IDS }}" \
-            --parameters 'commands=["chmod +x scripts/update_containers.sh", "scripts/update_containers.sh $ECR_REGISTRY $ECR_REPOSITORY $FRONTEND_IMAGE_TAG $BACKEND_IMAGE_TAG"]' \
-            --comment "Deploy new Docker images"
+            --targets "Key=instanceIds,Values=$INSTANCE_IDS" \
+            --comment "Deploy new Docker images" \
+            --parameters commands='[
+              "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY",
+              "chmod +x scripts/update_containers.sh",
+              "scripts/update_containers.sh $ECR_REGISTRY $ECR_REPOSITORY $FRONTEND_IMAGE_TAG $BACKEND_IMAGE_TAG"
+            ]' --query "Command.CommandId" --output text)
+
+          echo $command_id
+
+          for instance_id in $(echo $INSTANCE_IDS | tr ',' ' '); do
+            aws ssm wait command-executed \
+              --command-id $command_id \
+              --instance-id $instance_id
+          done
+
+          commandOutput=$(aws ssm list-commands --command-id $command_id)
+          echo $commandOutput
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
