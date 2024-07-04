@@ -47,6 +47,10 @@ jobs:
         id: fetch-ec2-instance-ids
         run: |
           INSTANCE_IDS=$(aws ec2 describe-instances --filters "Name=tag:Role,Values=backend-frontend" --query "Reservations[].Instances[].InstanceId" --output text)
+          if [ -z "$INSTANCE_IDS" ]; then
+            echo "No instances found with the specified tag."
+            exit 1
+          fi
           echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
 
       - name: Deploy to EC2 via SSM
