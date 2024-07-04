@@ -46,11 +46,19 @@ jobs:
       - name: Fetch EC2 Instance IDs
         id: fetch-ec2-instance-ids
         run: |
-          INSTANCE_IDS=$(aws ec2 describe-instances --filters "Name=tag:Role,Values=backend-frontend" --query "Reservations[].Instances[].InstanceId" --output text)
+          echo "AWS CLI version:"
+          aws --version
+          echo "Listing all EC2 instances and their tags:"
+          INSTANCES=$(aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json)
+          echo "$INSTANCES" | jq '.'
+          echo "Filtering instances with Role tag 'backend-frontend':"
+          INSTANCE_IDS=$(echo "$INSTANCES" | jq -r '.[] | select(.[2][] | select(.Key == "Role" and .Value == "backend-frontend")) | .[0]')
           if [ -z "$INSTANCE_IDS" ]; then
-            echo "No instances found with the specified tag."
+            echo "No instances found with the tag Role=backend-frontend"
             exit 1
           fi
+          echo "Matching instance IDs:"
+          echo "$INSTANCE_IDS"
           echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
 
       - name: Deploy to EC2 via SSM
