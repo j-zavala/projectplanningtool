@@ -23,7 +23,19 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: private
-      - name: Build and Push Tagged Docker Image to AWS ECR
+
+      # Build and Push Frontend Docker Image
+      - name: Build Frontend Docker Image to AWS ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-aws-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPO }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      # Build and Push Backend Docker Image
+      - name: Build Backend Docker Image to AWS ECR
         env:
           ECR_REGISTRY: ${{ steps.login-aws-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPO }}
@@ -32,3 +44,16 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./api
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      - name: Fetch EC2 Instance IDs
+        id: fetch-ec2-instance-ids
+        run: |
+          INSTANCE_IDS=$(aws ec2 describe-instances --filters "Name=tag:Role,Values=backend-frontend" --query "Reservations[].Instances[].InstanceId" --output text)
+          echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
+
+      - name: Deploy to EC2 via SSM
+        run: |
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceIds,Values=${{ env.INSTANCE_IDS }}" \
+            --parameters 'commands=["chmod +x scripts/update_containers.sh", "scripts/update_containers.sh"]' \
+            --comment "Deploy new Docker images"
