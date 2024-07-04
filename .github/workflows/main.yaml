@@ -49,6 +49,9 @@ jobs:
           echo "AWS CLI version:"
           aws --version
 
+          echo "AWS configuration:"
+          aws configure list
+
           echo "Listing all EC2 instances and their tags:"
           INSTANCES=$(aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json)
           echo "$INSTANCES" | jq '.'
