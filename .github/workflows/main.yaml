@@ -52,7 +52,10 @@ jobs:
           echo "AWS configuration:"
           aws configure list
 
-          echo "Listing all EC2 instances and their tags:"
+          echo "Checking region and credentials:"
+          aws sts get-caller-identity
+
+          echo "Listing all EC2 instances in region $AWS_REGION:"
           aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json | jq '.'
 
           echo "Filtering instances with Role tag 'backend-frontend':"
