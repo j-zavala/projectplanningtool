@@ -53,11 +53,10 @@ jobs:
           aws configure list
 
           echo "Listing all EC2 instances and their tags:"
-          INSTANCES=$(aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json)
-          echo "$INSTANCES" | jq '.'
+          aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json | jq '.'
 
           echo "Filtering instances with Role tag 'backend-frontend':"
-          INSTANCE_IDS=$(echo "$INSTANCES" | jq -r '.[] | select(.[2][] | select(.Key == "Role" and .Value == "backend-frontend")) | .[0]')
+          INSTANCE_IDS=$(aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json | jq -r '.[] | select(.[2][] | select(.Key == "Role" and .Value == "backend-frontend")) | .[0]')
           if [ -z "$INSTANCE_IDS" ]; then
             echo "No instances found with the tag Role=backend-frontend"
             exit 1
