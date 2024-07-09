@@ -8,7 +8,7 @@ services:
       DATABASE_HOST: ${RDS_ENDPOINT}
       DATABASE_PORT: 5432
       DATABASE_USER: postgres
-      DATABASE_PASSWORD: my_password
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
       DATABASE_NAME: names
     ports:
       - "3005:3005"
@@ -22,3 +22,16 @@ services:
       - "80:3000"
     depends_on:
       - api
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: names
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
