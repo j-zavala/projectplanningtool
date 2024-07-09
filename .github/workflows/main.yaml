@@ -71,7 +71,7 @@ jobs:
         run: |
           IFS=' ' read -ra INSTANCE_IDS <<< "${{ env.INSTANCE_IDS }}"
           echo "INSTANCE_IDS: ${INSTANCE_IDS[*]}"
-          INSTANCE_IDS_COMMA_SEPARATED=$(IFS=,; echo "${INSTANCE_IDS[*]}")
+          INSTANCE_IDS_COMMA_SEPARATED=$(IFS=','; echo "${INSTANCE_IDS[*]}")
           echo "INSTANCE_IDS_COMMA_SEPARATED: $INSTANCE_IDS_COMMA_SEPARATED"
           command_id=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
