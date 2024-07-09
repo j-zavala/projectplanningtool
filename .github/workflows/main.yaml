@@ -69,10 +69,11 @@ jobs:
 
       - name: Deploy to EC2 via SSM
         run: |
-          INSTANCE_IDS=${{ env.INSTANCE_IDS }}
+          IFS=' ' read -ra INSTANCE_IDS <<< "${{ env.INSTANCE_IDS }}"
+          echo "INSTANCE_IDS: ${INSTANCE_IDS[*]}"
           command_id=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceIds,Values=$INSTANCE_IDS" \
+            --targets "Key=instanceIds,Values=${INSTANCE_IDS[*]}" \
             --comment "Deploy new Docker images" \
             --parameters commands='[
               "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY",
@@ -82,7 +83,7 @@ jobs:
 
           echo $command_id
 
-          for instance_id in $INSTANCE_IDS; do
+          for instance_id in "${INSTANCE_IDS[@]}"; do
             aws ssm wait command-executed \
               --command-id $command_id \
               --instance-id $instance_id
