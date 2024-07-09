@@ -69,9 +69,10 @@ jobs:
 
       - name: Deploy to EC2 via SSM
         run: |
-          IFS=' ' read -ra INSTANCE_IDS <<< "${{ env.INSTANCE_IDS }}"
-          echo "INSTANCE_IDS: ${INSTANCE_IDS[*]}"
-          INSTANCE_IDS_COMMA_SEPARATED=$(echo "${INSTANCE_IDS[@]}" | tr ' ' ',')
+          INSTANCE_IDS=$(echo "${{ env.INSTANCE_IDS }}" | tr '\t' ' ')
+          IFS=' ' read -ra INSTANCE_IDS_ARRAY <<< "$INSTANCE_IDS"
+          echo "INSTANCE_IDS: ${INSTANCE_IDS_ARRAY[*]}"
+          INSTANCE_IDS_COMMA_SEPARATED=$(IFS=','; echo "${INSTANCE_IDS_ARRAY[*]}")
           echo "INSTANCE_IDS_COMMA_SEPARATED: $INSTANCE_IDS_COMMA_SEPARATED"
           command_id=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
@@ -85,7 +86,7 @@ jobs:
 
           echo $command_id
 
-          for instance_id in "${INSTANCE_IDS[@]}"; do
+          for instance_id in "${INSTANCE_IDS_ARRAY[@]}"; do
             aws ssm wait command-executed \
               --command-id $command_id \
               --instance-id $instance_id
