@@ -80,8 +80,7 @@ jobs:
             --comment "Deploy new Docker images" \
             --parameters commands='[
               "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY",
-              "chmod +x /scripts/update_containers.sh",
-              "/scripts/update_containers.sh $ECR_REGISTRY $ECR_REPOSITORY $BACKEND_IMAGE_TAG"
+              "/app/scripts/update_containers.sh $ECR_REGISTRY $ECR_REPOSITORY $BACKEND_IMAGE_TAG"
             ]' --query "Command.CommandId" --output text)
 
           echo "Command ID: $command_id"

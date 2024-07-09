@@ -10,14 +10,17 @@ COPY package*.json ./
 # Install app dependencies
 RUN npm install
 
-# Bundle app source
+# Copy the rest of the application code, including the scripts directory
 COPY . .
+
+# Ensure the script is executable
+RUN chmod +x /app/scripts/update_containers.sh
 
 # Creates a "dist" folder with the production build
 RUN npm run build
 
 # Expose the port on which the app will run
-EXPOSE 3000
+EXPOSE 3005
 
 # Start the server using the production build
 CMD npm run migration:run && npm run start:prod
