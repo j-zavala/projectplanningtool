@@ -71,9 +71,11 @@ jobs:
         run: |
           IFS=' ' read -ra INSTANCE_IDS <<< "${{ env.INSTANCE_IDS }}"
           echo "INSTANCE_IDS: ${INSTANCE_IDS[*]}"
+          INSTANCE_IDS_COMMA_SEPARATED=$(IFS=,; echo "${INSTANCE_IDS[*]}")
+          echo "INSTANCE_IDS_COMMA_SEPARATED: $INSTANCE_IDS_COMMA_SEPARATED"
           command_id=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceIds,Values=${INSTANCE_IDS[*]}" \
+            --targets "Key=InstanceIds,Values=$INSTANCE_IDS_COMMA_SEPARATED" \
             --comment "Deploy new Docker images" \
             --parameters commands='[
               "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY",
@@ -99,4 +101,3 @@ jobs:
           ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
           BACKEND_IMAGE_TAG: ${{ env.BACKEND_IMAGE_TAG }}
-          INSTANCE_IDS: ${{ env.INSTANCE_IDS }}
