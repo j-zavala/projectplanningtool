@@ -97,8 +97,10 @@ jobs:
 
           # Log the output of each command executed on the EC2 instances
           for instance_id in "${INSTANCE_IDS_ARRAY[@]}"; do
-            invocation_output=$(aws ssm get-command-invocation --command-id $command_id --instance-id $instance_id)
-            echo "Invocation Output for $instance_id: $invocation_output"
+            invocation_output=$(aws ssm get-command-invocation --command-id $command_id --instance-id $instance_id --query "StandardOutputContent" --output text)
+            echo "Standard Output for $instance_id: $invocation_output"
+            invocation_error=$(aws ssm get-command-invocation --command-id $command_id --instance-id $instance_id --query "StandardErrorContent" --output text)
+            echo "Standard Error for $instance_id: $invocation_error"
           done
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
