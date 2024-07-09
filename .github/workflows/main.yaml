@@ -84,7 +84,7 @@ jobs:
               "scripts/update_containers.sh $ECR_REGISTRY $ECR_REPOSITORY $BACKEND_IMAGE_TAG"
             ]' --query "Command.CommandId" --output text)
 
-          echo $command_id
+          echo "Command ID: $command_id"
 
           for instance_id in "${INSTANCE_IDS_ARRAY[@]}"; do
             aws ssm wait command-executed \
@@ -92,8 +92,8 @@ jobs:
               --instance-id $instance_id
           done
 
-          commandOutput=$(aws ssm list-commands --command-id $command_id)
-          echo $commandOutput
+          commandOutput=$(aws ssm list-command-invocations --command-id $command_id --details)
+          echo "Command Output: $commandOutput"
         env:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
