@@ -5,7 +5,7 @@ ECR_REPOSITORY=$2
 BACKEND_IMAGE_TAG=$3
 
 # Login to ECR
-$(aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY)
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
 
 # Pull the latest images
 docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
