@@ -97,6 +97,5 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
-          FRONTEND_IMAGE_TAG: ${{ env.FRONTEND_IMAGE_TAG }}
           BACKEND_IMAGE_TAG: ${{ env.BACKEND_IMAGE_TAG }}
           INSTANCE_IDS: ${{ env.INSTANCE_IDS }}
