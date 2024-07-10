@@ -65,5 +65,3 @@ jobs:
           echo "Matching instance IDs:"
           echo "$INSTANCE_IDS"
           echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
-      - name: Debug - Print Environment Variables
-        run: env | sort
