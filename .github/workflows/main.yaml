@@ -40,28 +40,3 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
-
-      - name: Fetch EC2 Instance IDs
-        id: fetch-ec2-instance-ids
-        run: |
-          echo "AWS CLI version:"
-          aws --version
-
-          echo "AWS configuration:"
-          aws configure list
-
-          echo "Checking region and credentials:"
-          aws sts get-caller-identity
-
-          echo "Listing all EC2 instances in region $AWS_REGION:"
-          aws ec2 describe-instances --query "Reservations[].Instances[].[InstanceId,State.Name,Tags]" --output json | jq '.'
-
-          echo "Fetching all running EC2 instance IDs:"
-          INSTANCE_IDS=$(aws ec2 describe-instances --filters "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text)
-          if [ -z "$INSTANCE_IDS" ]; then
-            echo "No running instances found"
-            exit 1
-          fi
-          echo "Matching instance IDs:"
-          echo "$INSTANCE_IDS"
-          echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
