@@ -41,6 +41,14 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
 
+      - name: Print Raw EC2 Describe Instances Output
+        run: |
+          aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=your-instance-name" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[?State.Name=='running']" \
+            --output json
+
       - name: Fetch EC2 Instance IDs
         run: |
           INSTANCE_IDS=$(aws ec2 describe-instances \
