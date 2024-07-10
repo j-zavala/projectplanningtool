@@ -49,6 +49,12 @@ jobs:
             --query "Reservations[].Instances[?State.Name=='running']" \
             --output json
 
+      - name: Print All EC2 Instances
+        run: |
+          aws ec2 describe-instances \
+            --query "Reservations[].Instances[].[InstanceId, Tags]" \
+            --output json
+
       - name: Fetch EC2 Instance IDs
         run: |
           INSTANCE_IDS=$(aws ec2 describe-instances \
