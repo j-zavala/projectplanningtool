@@ -58,7 +58,7 @@ jobs:
       - name: Fetch EC2 Instance IDs
         run: |
           INSTANCE_IDS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=your-instance-name" \
+            --filters "Name=tag:Name,Values=cwc-private-ec2-1,cwc-private-ec2-2" \
                       "Name=instance-state-name,Values=running" \
             --query "Reservations[].Instances[?State.Name=='running'].[InstanceId]" \
             --output text | tr '\n' ' ')
