@@ -48,5 +48,5 @@ jobs:
                       "Name=instance-state-name,Values=running" \
             --query "Reservations[].Instances[?State.Name=='running'].[InstanceId]" \
             --output text | tr '\n' ' ')
-          echo "INSTANCE_IDS=$INSTANCE_IDS"
           echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
+          echo "Fetched EC2 Instance IDs: $INSTANCE_IDS"
