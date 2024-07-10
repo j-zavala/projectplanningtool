@@ -14,7 +14,7 @@ RUN npm install
 COPY . .
 
 # Ensure the script is executable
-RUN chmod +x /app/scripts/update_containers.sh
+# RUN chmod +x /app/scripts/update_containers.sh
 
 # Creates a "dist" folder with the production build
 RUN npm run build
