@@ -41,11 +41,6 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
 
-      - name: Read GITHUB_OUTPUT file
-        run: |
-          echo "Contents of GITHUB_OUTPUT file:"
-          cat $GITHUB_OUTPUT
-
       - name: Fetch EC2 Instance IDs
         id: fetch-ec2-instance-ids
         run: |
