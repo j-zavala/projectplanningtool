@@ -61,7 +61,7 @@ jobs:
 
       - name: Deploy to EC2 Instances
         run: |
-          echo "Deploying container: $CONTAINER_NAME"
+          echo "Deploying container: ${CONTAINER_NAME}"
           # Convert space-separated instance IDs to comma-separated
           IFS=' ' read -ra INSTANCE_ARRAY <<< "${{ env.INSTANCE_IDS }}"
           INSTANCE_IDS_FORMATTED=$(IFS=,; echo "${INSTANCE_ARRAY[*]}")
