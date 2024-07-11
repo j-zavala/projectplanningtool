@@ -38,6 +38,13 @@ jobs:
           echo "ECR_REPOSITORY=${{ secrets.AWS_ECR_REPO }}" >> $GITHUB_ENV
           echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}" >> $GITHUB_ENV
 
+      # LOGGING
+      - name: Log Environment Variables
+        run: |
+          echo "ECR_REGISTRY: $ECR_REGISTRY"
+          echo "ECR_REPOSITORY: $ECR_REPOSITORY"
+          echo "BACKEND_IMAGE_TAG: $BACKEND_IMAGE_TAG"
+
       # Uses Dockerfile in api directory to build and push the backend image to AWS ECR
       - name: Build & Push Backend Docker Image to AWS ECR
         # in docker build, all steps in Dockerfile are followed to to create final image
@@ -55,83 +62,18 @@ jobs:
           echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
           echo "Fetched EC2 Instance IDs: $INSTANCE_IDS"
 
+      # LOGGING
+      - name: Log Fetched EC2 Instance IDs
+        run: |
+          echo "INSTANCE_IDS: $INSTANCE_IDS"
+
       - name: Deploy to EC2 Instances
         run: |
-          echo "Deploying container: ${CONTAINER_NAME}"
-          IFS=' ' read -ra INSTANCE_ARRAY <<< "${{ env.INSTANCE_IDS }}"
-          INSTANCE_IDS_FORMATTED=$(IFS=,; echo "${INSTANCE_ARRAY[*]}")
-
-          echo "Deploying to instances: $INSTANCE_IDS_FORMATTED"
-          echo "ECR Registry: $ECR_REGISTRY"
-          echo "ECR Repository: $ECR_REPOSITORY"
-          echo "Image Tag: $BACKEND_IMAGE_TAG"
-
-          execute_ssm_command() {
+          for instance_id in ${{ env.INSTANCE_IDS }}; do
+            echo "Deploying to instance $instance_id"
             aws ssm send-command \
-              --targets "Key=InstanceIds,Values=$1" \
+              --instance-ids $instance_id \
               --document-name "AWS-RunShellScript" \
-              --output text \
-              --query "Command.CommandId" \
-              --parameters '{
-                "commands": [
-                  "echo \"$(date): Current containers:\"",
-                  "docker ps --format \"ID: {{.ID}} - Name: {{.Names}} - Image: {{.Image}} - Status: {{.Status}}\"",
-                  "echo \"AWS Account ID: $(aws sts get-caller-identity --query Account --output text)\"",
-                  "echo \"ECR Registry: ${ECR_REGISTRY}\"",
-                  "aws ecr describe-repositories --repository-names ${ECR_REPOSITORY} || echo \"Failed to connect to ECR repository\"",
-                  "echo \"$(date): Logging in to ECR...\"",
-                  "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY} || { echo \"ECR login failed: $?\"; aws ecr get-login-password --region us-east-1 --debug 2>&1; exit 1; }",
-                  "echo \"$(date): Pulling new image...\"",
-                  "docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${BACKEND_IMAGE_TAG} || { echo \"Docker pull failed: $?\"; exit 1; }",
-                  "echo \"$(date): Stopping and removing old containers...\"",
-                  "docker ps -a --format \"{{.Names}}\" | grep \"^backend-\" || echo \"No existing backend containers found\"",
-                  "docker ps -q --filter name=backend-* | xargs -r docker stop",
-                  "docker ps -aq --filter name=backend-* | xargs -r docker rm",
-                  "echo \"$(date): Starting new container...\"",
-                  "docker run -d --name ${CONTAINER_NAME} -p 80:3005 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${BACKEND_IMAGE_TAG} || { echo \"Docker run failed: $?\"; exit 1; }",
-                  "echo \"$(date): Containers after deployment:\"",
-                  "docker ps --format \"ID: {{.ID}} - Name: {{.Names}} - Image: {{.Image}} - Status: {{.Status}}\""
-                ]
-              }'
-          }
-
-          wait_for_command() {
-            aws ssm wait command-executed --command-id "$1" --instance-id "$2"
-          }
-
-          get_command_result() {
-            aws ssm get-command-invocation --command-id "$1" --instance-id "$2" --query "Status" --output text
-          }
-
-          for instance in "${INSTANCE_ARRAY[@]}"; do
-            echo "Processing instance: $instance"
-            COMMAND_ID=$(execute_ssm_command "$instance")
-            echo "SSM Command ID for $instance: $COMMAND_ID"
-            
-            wait_for_command "$COMMAND_ID" "$instance" || true
-            
-            RESULT=$(get_command_result "$COMMAND_ID" "$instance")
-            echo "Command execution result for $instance: $RESULT"
-            
-            if [ "$RESULT" != "Success" ]; then
-              echo "Command failed on instance $instance. Fetching details..."
-              aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$instance" --query "StandardOutputContent" --output text
-              aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$instance" --query "StandardErrorContent" --output text
-            fi
+              --comment "Deploy backend Docker image" \
+              --parameters '{"commands":["docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG", "docker stop backend-container || true", "docker rm backend-container || true", "docker run -d --name backend-container -p 80:3005 $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"]}'
           done
-
-          # Final status check
-          FAILED_INSTANCES=()
-          for instance in "${INSTANCE_ARRAY[@]}"; do
-            RESULT=$(get_command_result "$COMMAND_ID" "$instance")
-            if [ "$RESULT" != "Success" ]; then
-              FAILED_INSTANCES+=("$instance")
-            fi
-          done
-
-          if [ ${#FAILED_INSTANCES[@]} -ne 0 ]; then
-            echo "Deployment failed on the following instances: ${FAILED_INSTANCES[*]}"
-            exit 1
-          else
-            echo "Deployment successful on all instances"
-          fi
