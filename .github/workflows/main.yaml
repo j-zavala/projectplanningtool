@@ -75,5 +75,14 @@ jobs:
               --instance-ids $instance_id \
               --document-name "AWS-RunShellScript" \
               --comment "Deploy backend Docker image" \
-              --parameters '{"commands":["docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG", "docker stop backend-container || true", "docker rm backend-container || true", "docker run -d --name backend-container -p 80:3005 $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"]}'
+              --parameters '{"commands":[
+                "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY",
+                "echo ECR_REGISTRY=$ECR_REGISTRY",
+                "echo ECR_REPOSITORY=$ECR_REPOSITORY",
+                "echo BACKEND_IMAGE_TAG=$BACKEND_IMAGE_TAG",
+                "docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
+                "docker stop backend-container || true",
+                "docker rm backend-container || true",
+                "docker run -d --name backend-container -p 80:3005 $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
+              ]}'
           done
