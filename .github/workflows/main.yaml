@@ -17,10 +17,6 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     env:
-      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      IMAGE_TAG: ${{ github.sha }}
       CONTAINER_NAME: backend-${{ github.sha }}
     steps:
       - name: Checkout
@@ -80,13 +76,13 @@ jobs:
                 "echo \"$(date): Logging in to ECR...\"",
                 "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY} || { echo \"ECR login failed\"; exit 1; }",
                 "echo \"$(date): Pulling new image...\"",
-                "docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} || { echo \"Docker pull failed\"; exit 1; }",
+                "docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${BACKEND_IMAGE_TAG} || { echo \"Docker pull failed\"; exit 1; }",
                 "echo \"$(date): Stopping and removing old containers...\"",
                 "docker ps -a --format \"{{.Names}}\" | grep \"^backend-\" || echo \"No existing backend containers found\"",
                 "docker ps -q --filter name=backend-* | xargs -r docker stop",
                 "docker ps -aq --filter name=backend-* | xargs -r docker rm",
                 "echo \"$(date): Starting new container...\"",
-                "docker run -d --name ${CONTAINER_NAME} -p 80:3005 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} || { echo \"Docker run failed\"; exit 1; }",
+                "docker run -d --name ${CONTAINER_NAME} -p 80:3005 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${BACKEND_IMAGE_TAG} || { echo \"Docker run failed\"; exit 1; }",
                 "echo \"$(date): Containers after deployment:\"",
                 "docker ps --format \"ID: {{.ID}} - Name: {{.Names}} - Image: {{.Image}} - Status: {{.Status}}\""
               ]
@@ -95,7 +91,7 @@ jobs:
           echo "SSM Command ID: $COMMAND_ID"
 
           # Wait for command to complete
-          aws ssm wait command-executed --command-id "$COMMAND_ID" --targets "Key=InstanceIds,Values=$INSTANCE_IDS_FORMATTED"
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-ids $INSTANCE_IDS_FORMATTED
 
           # Get command invocation results
           aws ssm list-command-invocations --command-id "$COMMAND_ID" --details
