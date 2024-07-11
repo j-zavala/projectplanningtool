@@ -58,7 +58,7 @@ jobs:
       - name: Deploy to EC2 Instances
         run: |
           echo "Deploying container: ${CONTAINER_NAME}"
-          # Convert space-separated instance IDs to comma-separated
+          # Convert space-separated instance IDs to an array
           IFS=' ' read -ra INSTANCE_ARRAY <<< "${{ env.INSTANCE_IDS }}"
           INSTANCE_IDS_FORMATTED=$(IFS=,; echo "${INSTANCE_ARRAY[*]}")
 
@@ -94,7 +94,11 @@ jobs:
           echo "SSM Command ID: $COMMAND_ID"
 
           # Wait for command to complete
-          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-ids $INSTANCE_IDS_FORMATTED
+          echo "Waiting for SSM command to complete..."
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-ids "${INSTANCE_ARRAY[@]}"
 
           # Get command invocation results
+          echo "Fetching command invocation results..."
           aws ssm list-command-invocations --command-id "$COMMAND_ID" --details
