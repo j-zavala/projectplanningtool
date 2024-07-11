@@ -76,8 +76,11 @@ jobs:
                 "commands": [
                   "echo \"$(date): Current containers:\"",
                   "docker ps --format \"ID: {{.ID}} - Name: {{.Names}} - Image: {{.Image}} - Status: {{.Status}}\"",
+                  "echo \"AWS Account ID: $(aws sts get-caller-identity --query Account --output text)\"",
+                  "echo \"ECR Registry: ${ECR_REGISTRY}\"",
+                  "aws ecr describe-repositories --repository-names ${ECR_REPOSITORY} || echo \"Failed to connect to ECR repository\"",
                   "echo \"$(date): Logging in to ECR...\"",
-                  "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY} || { echo \"ECR login failed: $?\"; aws ecr get-login-password --region us-east-1 2>&1; exit 1; }",
+                  "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY} || { echo \"ECR login failed: $?\"; aws ecr get-login-password --region us-east-1 --debug 2>&1; exit 1; }",
                   "echo \"$(date): Pulling new image...\"",
                   "docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${BACKEND_IMAGE_TAG} || { echo \"Docker pull failed: $?\"; exit 1; }",
                   "echo \"$(date): Stopping and removing old containers...\"",
