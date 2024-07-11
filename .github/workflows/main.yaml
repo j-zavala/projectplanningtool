@@ -16,6 +16,12 @@ jobs:
   build-and-push-to-ecr:
     name: Build Docker Image
     runs-on: ubuntu-latest
+    env:
+      ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      IMAGE_TAG: ${{ github.sha }}
+      CONTAINER_NAME: backend-${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,6 +61,7 @@ jobs:
 
       - name: Deploy to EC2 Instances
         run: |
+          echo "Deploying container: $CONTAINER_NAME"
           # Convert space-separated instance IDs to comma-separated
           IFS=' ' read -ra INSTANCE_ARRAY <<< "${{ env.INSTANCE_IDS }}"
           INSTANCE_IDS_FORMATTED=$(IFS=,; echo "${INSTANCE_ARRAY[*]}")
@@ -79,7 +86,7 @@ jobs:
                 "docker ps -q --filter name=backend-* | xargs -r docker stop",
                 "docker ps -aq --filter name=backend-* | xargs -r docker rm",
                 "echo \"$(date): Starting new container...\"",
-                "docker run -d --name ${CONTAINER_NAME} -p 3005:3005 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} || { echo \"Docker run failed\"; exit 1; }",
+                "docker run -d --name ${CONTAINER_NAME} -p 80:3005 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} || { echo \"Docker run failed\"; exit 1; }",
                 "echo \"$(date): Containers after deployment:\"",
                 "docker ps --format \"ID: {{.ID}} - Name: {{.Names}} - Image: {{.Image}} - Status: {{.Status}}\""
               ]
