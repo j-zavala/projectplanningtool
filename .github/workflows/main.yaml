@@ -93,11 +93,14 @@ jobs:
 
           echo "SSM Command ID: $COMMAND_ID"
 
-          # Wait for command to complete
+          # Wait for command to complete on all instances
           echo "Waiting for SSM command to complete..."
-          aws ssm wait command-executed \
-            --command-id "$COMMAND_ID" \
-            --instance-ids "${INSTANCE_ARRAY[@]}"
+          for instance in "${INSTANCE_ARRAY[@]}"; do
+            echo "Waiting for instance: $instance"
+            aws ssm wait command-executed \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$instance"
+          done
 
           # Get command invocation results
           echo "Fetching command invocation results..."
