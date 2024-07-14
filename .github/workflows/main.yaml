@@ -5,15 +5,8 @@ on:
     branches:
       - main
 
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        description: "Run the workflow with debug logging"
-        required: true
-        default: true
-
 jobs:
-  build-and-push-to-ecr:
+  build:
     name: Build Docker Image
     runs-on: ubuntu-latest
     env:
