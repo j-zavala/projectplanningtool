@@ -22,4 +22,5 @@ const config: DataSourceOptions =
       };
 
 export default registerAs('typeorm', (): DataSourceOptions => config);
-export const connectionSource = new DataSource(config);
+export const connectionSource =
+  process.env.DISABLE_DB === 'true' ? null : new DataSource(config);
