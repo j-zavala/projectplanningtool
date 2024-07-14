@@ -40,7 +40,7 @@ jobs:
 
       # Uses Dockerfile in api directory to build and push the backend image to AWS ECR
       - name: Build & Push Backend Docker Image to AWS ECR
-        # in docker build, all steps in Dockerfile are followed to to create final image
+        # in docker build, all steps in Dockerfile are followed to create final image
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
