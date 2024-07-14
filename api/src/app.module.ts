@@ -14,25 +14,27 @@ import { AuthModule } from './auth/auth.module';
       isGlobal: true,
       load: [typeorm],
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (
-        configService: ConfigService,
-      ): Promise<DataSourceOptions> => {
-        const typeormConfig = configService.get('typeorm');
-        return {
-          ...typeormConfig,
-          autoLoadEntities: true,
-        };
-      },
-    }),
-    TypeOrmModule.forFeature([Name]),
+    ...(process.env.DISABLE_DB === 'true'
+      ? []
+      : [
+          TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: async (
+              configService: ConfigService,
+            ): Promise<DataSourceOptions> => {
+              const typeormConfig = configService.get('typeorm');
+              return {
+                ...typeormConfig,
+                autoLoadEntities: true,
+              };
+            },
+          }),
+          TypeOrmModule.forFeature([Name]),
+        ]),
     AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  // constructor(private configService: ConfigService) {}
-}
+export class AppModule {}

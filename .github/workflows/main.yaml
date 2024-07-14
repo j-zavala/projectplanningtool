@@ -80,6 +80,6 @@ jobs:
                 "docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
                 "docker stop backend-container || true",
                 "docker rm backend-container || true",
-                "docker run -d --name backend-container -p 80:3005 $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
+                "docker run -d --name backend-container -p 80:3005 -e DISABLE_DB=true $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
               ]}'
           done
