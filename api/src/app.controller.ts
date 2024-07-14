@@ -18,4 +18,9 @@ export class AppController {
   async getNames() {
     return await this.appService.getNames();
   }
+
+  @Get('/hello')
+  getHello(): string {
+    return this.appService.getHello();
+  }
 }

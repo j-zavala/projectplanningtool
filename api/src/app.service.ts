@@ -21,4 +21,8 @@ export class AppService {
   async getNames(): Promise<Name[]> {
     return await this.namesRepository.find();
   }
+
+  getHello(): string {
+    return 'Hello World deploy 1!';
+  }
 }
