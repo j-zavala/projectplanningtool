@@ -5,19 +5,19 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Post('/name')
-  async addName(
-    @Body('firstName') firstName: string,
-    @Body('lastName') lastName: string,
-  ) {
-    console.log(firstName, lastName);
-    return this.appService.addName(firstName, lastName);
-  }
+  // @Post('/name')
+  // async addName(
+  //   @Body('firstName') firstName: string,
+  //   @Body('lastName') lastName: string,
+  // ) {
+  //   console.log(firstName, lastName);
+  //   return this.appService.addName(firstName, lastName);
+  // }
 
-  @Get()
-  async getNames() {
-    return await this.appService.getNames();
-  }
+  // @Get()
+  // async getNames() {
+  //   return await this.appService.getNames();
+  // }
 
   @Get('/hello')
   getHello(): string {
