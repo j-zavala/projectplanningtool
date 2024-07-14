@@ -23,6 +23,6 @@ export class AppService {
   // }
 
   getHello(): string {
-    return 'Hello World deploy 1!';
+    return 'Hello World deploy 22222222!';
   }
 }
