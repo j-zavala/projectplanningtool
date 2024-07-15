@@ -23,6 +23,6 @@ export class AppService {
   // }
 
   getHello(): string {
-    return 'cats were here';
+    return 'Hello World!';
   }
 }
