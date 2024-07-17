@@ -6,7 +6,8 @@ import { AppService } from './app.service';
 import { Name } from './name.entity';
 import typeorm from './config/typeorm';
 import { DataSourceOptions } from 'typeorm';
-import { AuthModule } from './auth/auth.module';
+// import { AuthModule } from './auth/auth.module';
+import { TodosModule } from './todos/todos.module';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { AuthModule } from './auth/auth.module';
           }),
           TypeOrmModule.forFeature([Name]),
         ]),
-    AuthModule,
+    // AuthModule,
+    TodosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
