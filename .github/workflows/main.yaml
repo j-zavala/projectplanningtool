@@ -85,6 +85,6 @@ jobs:
                 "docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
                 "docker stop ${{ env.CONTAINER_NAME }} || true",
                 "docker rm ${{ env.CONTAINER_NAME }} || true",
-                "docker run -d --name ${{ env.CONTAINER_NAME }} -p 80:3005 -e DB_HOST="${{ env.RDS_ENDPOINT }}" -e DB_PORT="${{ secrets.DB_PORT }}" -e DB_USERNAME="${{ secrets.DB_USERNAME }}" -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" -e NODE_ENV="production" -e DISABLE_DB=false $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
+                "docker run -d --name ${{ env.CONTAINER_NAME }} -p 80:3005 -e DB_HOST=\\"${{ env.RDS_ENDPOINT }}\\" -e DB_PORT=\\"${{ secrets.DB_PORT }}\\" -e DB_USERNAME=\\"${{ secrets.DB_USERNAME }}\\" -e DB_PASSWORD=\\"${{ secrets.DB_PASSWORD }}\\" -e NODE_ENV=\\"production\\" -e DISABLE_DB=false $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
               ]}'
           done
