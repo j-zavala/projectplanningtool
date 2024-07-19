@@ -73,30 +73,18 @@ jobs:
               --instance-ids $instance_id \
               --document-name "AWS-RunShellScript" \
               --comment "Deploy backend Docker image" \
-              --parameters "$(cat << EOF
-          {
-            "commands": [
-              "export ECR_REGISTRY=${{ steps.login-aws-ecr.outputs.registry }}",
-              "export ECR_REPOSITORY=${{ secrets.AWS_ECR_REPO }}",
-              "export BACKEND_IMAGE_TAG=backend-${{ github.sha }}",
-              "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin \$ECR_REGISTRY",
-              "echo ECR_REGISTRY=\$ECR_REGISTRY",
-              "echo ECR_REPOSITORY=\$ECR_REPOSITORY",
-              "echo BACKEND_IMAGE_TAG=\$BACKEND_IMAGE_TAG",
-              "sudo systemctl restart docker",
-              "docker pull \$ECR_REGISTRY/\$ECR_REPOSITORY:\$BACKEND_IMAGE_TAG",
-              "docker stop backend-container || true",
-              "docker rm backend-container || true",
-              "docker run -d --name backend-container -p 80:3005 \\
-                  -e DB_HOST='${{ env.RDS_ENDPOINT }}' \\
-                  -e DB_PORT='${{ secrets.DB_PORT }}' \\
-                  -e DB_USERNAME='${{ secrets.DB_USERNAME }}' \\
-                  -e DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \\
-                  -e NODE_ENV='production' \\
-                  -e DISABLE_DB=false \\
-                  \$ECR_REGISTRY/\$ECR_REPOSITORY:\$BACKEND_IMAGE_TAG"
-            ]
-          }
-          EOF
-          )"
+              --parameters '{"commands":[
+                "export ECR_REGISTRY='${{ steps.login-aws-ecr.outputs.registry }}'",
+                "export ECR_REPOSITORY='${{ secrets.AWS_ECR_REPO }}'",
+                "export BACKEND_IMAGE_TAG='backend-${{ github.sha }}'",
+                "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY",
+                "echo ECR_REGISTRY=$ECR_REGISTRY",
+                "echo ECR_REPOSITORY=$ECR_REPOSITORY",
+                "echo BACKEND_IMAGE_TAG=$BACKEND_IMAGE_TAG",
+                "sudo systemctl restart docker",
+                "docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
+                "docker stop backend-container || true",
+                "docker rm backend-container || true",
+                "docker run -d --name backend-container -p 80:3005 -e DISABLE_DB=true $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
+              ]}'
           done
