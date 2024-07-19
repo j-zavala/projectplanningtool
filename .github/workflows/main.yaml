@@ -10,7 +10,7 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     env:
-      CONTAINER_NAME: backend-${{ github.sha }}
+      CONTAINER_NAME: backend-container
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -83,8 +83,8 @@ jobs:
                 "echo BACKEND_IMAGE_TAG=$BACKEND_IMAGE_TAG",
                 "sudo systemctl restart docker",
                 "docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
-                "docker stop backend-container || true",
-                "docker rm backend-container || true",
-                "docker run -d --name backend-container -p 80:3005 -e DISABLE_DB=true $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
+                "docker stop ${{ env.CONTAINER_NAME }} || true",
+                "docker rm ${{ env.CONTAINER_NAME }} || true",
+                "docker run -d --name ${{ env.CONTAINER_NAME }} -p 80:3005 -e DISABLE_DB=true $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG"
               ]}'
           done
