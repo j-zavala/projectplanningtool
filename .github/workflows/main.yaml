@@ -87,6 +87,13 @@ jobs:
               --document-name "AWS-RunShellScript" \
               --comment "Deploy backend Docker image" \
               --parameters '{"commands":[
+                "echo \"RDS Endpoint: ${{ env.RDS_ENDPOINT }}\"",
+                "echo \"RDS Host: ${{ env.RDS_HOST }}\"",
+                "echo \"RDS Port: ${{ env.RDS_PORT }}\"",
+                "echo \"Checking EC2 DNS resolution...\"",
+                "nslookup ${{ env.RDS_HOST }}",
+                "echo \"Checking EC2 connection to RDS...\"",
+                "nc -zv ${{ env.RDS_HOST }} ${{ env.RDS_PORT }}",
                 "export ECR_REGISTRY='${{ steps.login-aws-ecr.outputs.registry }}'",
                 "export ECR_REPOSITORY='${{ secrets.AWS_ECR_REPO }}'",
                 "export BACKEND_IMAGE_TAG='backend-${{ github.sha }}'",
@@ -99,7 +106,13 @@ jobs:
                 "docker stop ${{ env.CONTAINER_NAME }} || true",
                 "docker rm ${{ env.CONTAINER_NAME }} || true",
                 "docker run -d --name ${{ env.CONTAINER_NAME }} -p 80:3005 --network host -e DB_HOST=${{ env.RDS_ENDPOINT }} -e DB_PORT=${{ secrets.DB_PORT }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_NAME=${{ secrets.DB_NAME }} -e DISABLE_DB=false $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
+                "echo \"Checking Docker container environment...\"",
                 "docker exec ${{ env.CONTAINER_NAME }} env | grep DB_",
-                "docker exec ${{ env.CONTAINER_NAME }} nslookup ${{ env.RDS_ENDPOINT }}"
+                "echo \"Checking Docker container DNS resolution...\"",
+                "docker exec ${{ env.CONTAINER_NAME }} nslookup ${{ env.RDS_HOST }}",
+                "echo \"Checking Docker container connection to RDS...\"",
+                "docker exec ${{ env.CONTAINER_NAME }} nc -zv ${{ env.RDS_HOST }} ${{ env.RDS_PORT }}",
+                "echo \"Docker container logs:\"",
+                "docker logs ${{ env.CONTAINER_NAME }}"
               ]}'
           done
