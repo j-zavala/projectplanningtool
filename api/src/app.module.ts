@@ -24,24 +24,24 @@ import { TodosModule } from './todos/todos.module';
         // to disable db, set DISABLE_DB=true
         const isDbDisabled = configService.get('DISABLE_DB') === 'true';
         if (isDbDisabled) {
+          console.log('Database is disabled');
           return {} as DataSourceOptions;
         }
+        const typeormConfig = configService.get('typeorm');
+
         // log db config to check if it's correct
-        const dbConfig = {
-          type: 'postgres' as const,
-          host: configService.get('DB_HOST'),
-          port: configService.get('DB_PORT'),
-          username: configService.get('DB_USERNAME'),
-          password: configService.get('DB_PASSWORD'),
-          database: configService.get('DB_NAME'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: false,
-        };
         console.log(
           'Database configuration:',
-          JSON.stringify(dbConfig, null, 2),
+          JSON.stringify(
+            {
+              ...typeormConfig,
+              password: '******', // Mask the password
+            },
+            null,
+            2,
+          ),
         );
-        const typeormConfig = configService.get('typeorm');
+
         return {
           ...typeormConfig,
           autoLoadEntities: true,
