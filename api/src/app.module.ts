@@ -26,6 +26,21 @@ import { TodosModule } from './todos/todos.module';
         if (isDbDisabled) {
           return {} as DataSourceOptions;
         }
+        // log db config to check if it's correct
+        const dbConfig = {
+          type: 'postgres' as const,
+          host: configService.get('DB_HOST'),
+          port: configService.get('DB_PORT'),
+          username: configService.get('DB_USERNAME'),
+          password: configService.get('DB_PASSWORD'),
+          database: configService.get('DB_NAME'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: false,
+        };
+        console.log(
+          'Database configuration:',
+          JSON.stringify(dbConfig, null, 2),
+        );
         const typeormConfig = configService.get('typeorm');
         return {
           ...typeormConfig,
