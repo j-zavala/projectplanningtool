@@ -65,7 +65,18 @@ jobs:
           RDS_ENDPOINT=$(aws ssm get-parameter --name "/cwc/rds/endpoint" --with-decryption --query "Parameter.Value" --output text)
           echo "RDS_ENDPOINT=$RDS_ENDPOINT" >> $GITHUB_ENV
           echo "Fetched RDS Endpoint: $RDS_ENDPOINT"
-          echo "Stored RDS Endpoint: ${{ env.RDS_ENDPOINT }}"
+          RDS_HOST=$(echo $RDS_ENDPOINT | cut -d':' -f1)
+          RDS_PORT=$(echo $RDS_ENDPOINT | cut -d':' -f2)
+          echo "RDS_HOST=$RDS_HOST" >> $GITHUB_ENV
+          echo "RDS_PORT=$RDS_PORT" >> $GITHUB_ENV
+          echo "Stored RDS Host: $RDS_HOST"
+          echo "Stored RDS Port: $RDS_PORT"
+
+      - name: Verify Stored RDS Endpoint
+        run: |
+          echo "Verifying stored RDS Endpoint: ${{ env.RDS_ENDPOINT }}"
+          echo "Verifying stored RDS Host: ${{ env.RDS_HOST }}"
+          echo "Verifying stored RDS Port: ${{ env.RDS_PORT }}"
 
       - name: Deploy to EC2 Instances
         run: |
