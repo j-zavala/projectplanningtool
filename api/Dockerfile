@@ -13,15 +13,19 @@ RUN npm install
 # Copy the rest of the application code, including the scripts directory
 COPY . .
 
-# Ensure the script is executable
-# RUN chmod +x /app/scripts/update_containers.sh
-
 # Creates a "dist" folder with the production build
 RUN npm run build
 
 # Expose the port on which the app will run
 EXPOSE 3005
 
+# Define placeholder environment variables for dev
+# ENV DB_HOST=db_host_placeholder \
+#     DB_PORT=db_port_placeholder \
+#     DB_USERNAME=db_username_placeholder \
+#     DB_PASSWORD=db_password_placeholder \
+#     DB_NAME=db_name_placeholder \
+#     DISABLE_DB=false
+
 # Start the server using the production build
-# CMD npm run migration:run && npm run start:prod
-CMD npm run migration:run && npm run start:prod
+CMD ["sh", "-c", "npm run migration:run && npm run start:prod"]

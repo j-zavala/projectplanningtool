@@ -15,24 +15,25 @@ import { TodosModule } from './todos/todos.module';
       isGlobal: true,
       load: [typeorm],
     }),
-    ...(process.env.DISABLE_DB === 'true'
-      ? []
-      : [
-          TypeOrmModule.forRootAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: async (
-              configService: ConfigService,
-            ): Promise<DataSourceOptions> => {
-              const typeormConfig = configService.get('typeorm');
-              return {
-                ...typeormConfig,
-                autoLoadEntities: true,
-              };
-            },
-          }),
-          TypeOrmModule.forFeature([Name]),
-        ]),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (
+        configService: ConfigService,
+      ): Promise<DataSourceOptions> => {
+        // to disable db, set DISABLE_DB=true
+        const isDbDisabled = configService.get('DISABLE_DB') === 'true';
+        if (isDbDisabled) {
+          return {} as DataSourceOptions;
+        }
+        const typeormConfig = configService.get('typeorm');
+        return {
+          ...typeormConfig,
+          autoLoadEntities: true,
+        };
+      },
+    }),
+    TypeOrmModule.forFeature([Name]),
     // AuthModule,
     TodosModule,
   ],

@@ -4,23 +4,21 @@ import { config as dotenvConfig } from 'dotenv';
 
 // Explicitly load environment variables
 dotenvConfig({ path: '.env' });
+
 // Define the TypeORM config using env variables
-const config: DataSourceOptions =
-  process.env.DISABLE_DB === 'true'
-    ? ({} as DataSourceOptions)
-    : {
-        type: 'postgres',
-        host: process.env.DATABASE_HOST,
-        port: parseInt(process.env.DATABASE_PORT, 10),
-        username: process.env.DATABASE_USERNAME,
-        password: process.env.DATABASE_PASSWORD,
-        database: process.env.DATABASE_NAME,
-        entities: ['dist/*.entity{.ts,.js}', 'dist/todos/*.entity{.ts,.js}'],
-        migrations: ['dist/migrations/*{.ts,.js}'],
-        synchronize: false,
-        logging: true,
-      };
+const config: DataSourceOptions = {
+  type: 'postgres',
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  entities: ['dist/*.entity{.ts,.js}', 'dist/todos/*.entity{.ts,.js}'],
+  migrations: ['dist/migrations/*{.ts,.js}'],
+  synchronize: false,
+  logging: true,
+};
 
 export default registerAs('typeorm', (): DataSourceOptions => config);
-export const connectionSource =
-  process.env.DISABLE_DB === 'true' ? null : new DataSource(config);
+// Export a DataSource instance for migrations
+export const AppDataSource = new DataSource(config);
