@@ -62,9 +62,10 @@ jobs:
 
       - name: Fetch RDS Endpoint from Parameter Store
         run: |
-          RDS_ENDPOINT=$(aws ssm get-parameter --name "/cwc/rds/endpoint" --query "Parameter.Value" --output text)
+          RDS_ENDPOINT=$(aws ssm get-parameter --name "/cwc/rds/endpoint" --with-decryption --query "Parameter.Value" --output text)
           echo "RDS_ENDPOINT=$RDS_ENDPOINT" >> $GITHUB_ENV
-          echo "Fetched RDS Endpoint: ${{ env.RDS_ENDPOINT }}"
+          echo "Fetched RDS Endpoint: $RDS_ENDPOINT"
+          echo "Stored RDS Endpoint: ${{ env.RDS_ENDPOINT }}"
 
       - name: Deploy to EC2 Instances
         run: |
