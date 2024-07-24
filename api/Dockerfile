@@ -2,7 +2,7 @@
 FROM --platform=linux/amd64 node:18
 
 # Install necessary tools
-RUN apt-get update && apt-get install -y dnsutils netcat && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y dnsutils netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /app
