@@ -24,10 +24,10 @@ EXPOSE 3005
 
 # Add diagnostic steps
 RUN echo "Listing contents of /app:" && ls -la /app && \
-    echo "Listing contents of /app/dist:" && ls -la /app/dist && \
+    echo "Listing contents of /app/dist:" && ls -la /app/dist
 
-    # Set environment variables for production
-    ENV NODE_ENV=production
+# Set environment variables for production
+ENV NODE_ENV=production
 
 # Start the server using the production build
 CMD ["sh", "-c", "npm run migration:run && npm run start:prod"]
