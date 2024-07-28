@@ -82,7 +82,7 @@ jobs:
         run: |
           for instance_id in ${{ env.INSTANCE_IDS }}; do
             echo "Deploying to instance $instance_id"
-            aws ssm send-command \
+            command_id=$(aws ssm send-command \
               --instance-ids $instance_id \
               --document-name "AWS-RunShellScript" \
               --comment "Deploy backend Docker image" \
@@ -114,5 +114,21 @@ jobs:
                 "docker exec ${{ env.CONTAINER_NAME }} nc -zv ${{ env.RDS_HOST }} ${{ env.RDS_PORT }}",
                 "echo \"Docker container logs:\"",
                 "docker logs ${{ env.CONTAINER_NAME }}"
-              ]}'
+              ]}' --query "Command.CommandId" --output text)
+
+            echo "SSM Command ID: $command_id"
+
+            aws ssm wait command-executed --command-id $command_id --instance-id $instance_id || true
+
+            status=$(aws ssm list-commands --command-id $command_id --query "Commands[0].StatusDetails" --output text)
+
+            echo "Status for instance $instance_id: $status"
+
+            if [ "$status" == "Success" ]; then
+              echo "Command executed successfully for instance $instance_id"
+            else
+              echo "Command failed for instance $instance_id, time to get debugging"
+              aws ssm list-command-invocations --command-id $command_id --details
+              exit 1
+            fi
           done
