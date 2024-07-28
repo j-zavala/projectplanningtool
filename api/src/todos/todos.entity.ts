@@ -18,7 +18,4 @@ export class TodoEntity {
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @Column()
-  title: string;
 }
