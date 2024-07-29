@@ -22,9 +22,10 @@
     "web-vitals": "^4.2.2"
   },
   "scripts": {
-    "start": "vite",
-    "build": "vite build",
-    "test": "vitest"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
   },
   "eslintConfig": {
     "extends": [
@@ -32,23 +33,10 @@
       "react-app/jest"
     ]
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
   "devDependencies": {
     "@babel/plugin-transform-private-property-in-object": "^7.24.7",
     "@types/node": "^22.0.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.3.5",
-    "vitest": "^2.0.4"
+    "vite": "^5.3.5"
   }
 }
