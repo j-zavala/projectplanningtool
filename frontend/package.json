@@ -24,12 +24,6 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
   "devDependencies": {
     "@babel/plugin-transform-private-property-in-object": "^7.24.7",
     "@types/node": "^22.0.0",
