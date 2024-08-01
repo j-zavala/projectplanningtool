@@ -10,7 +10,9 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     env:
-      CONTAINER_NAME: backend-container
+      # CONTAINER_NAME: backend-container
+      BACKEND_CONTAINER_NAME: backend-container
+      FRONTEND_CONTAINER_NAME: frontend-container
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +32,7 @@ jobs:
           echo "ECR_REGISTRY=${{ steps.login-aws-ecr.outputs.registry }}" >> $GITHUB_ENV
           echo "ECR_REPOSITORY=${{ secrets.AWS_ECR_REPO }}" >> $GITHUB_ENV
           echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}" >> $GITHUB_ENV
 
       # LOGGING
       - name: Log Environment Variables
@@ -37,6 +40,7 @@ jobs:
           echo "ECR_REGISTRY: $ECR_REGISTRY"
           echo "ECR_REPOSITORY: $ECR_REPOSITORY"
           echo "BACKEND_IMAGE_TAG: $BACKEND_IMAGE_TAG"
+          echo "FRONTEND_IMAGE_TAG: $FRONTEND_IMAGE_TAG"
 
       # Uses Dockerfile in api directory to build and push the backend image to AWS ECR
       - name: Build & Push Backend Docker Image to AWS ECR
@@ -44,6 +48,11 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
+
+      - name: Build & Push Frontend Docker Image to AWS ECR
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
 
       - name: Fetch EC2 Instance IDs
         run: |
@@ -78,7 +87,7 @@ jobs:
           echo "Verifying stored RDS Host: ${{ env.RDS_HOST }}"
           echo "Verifying stored RDS Port: ${{ env.RDS_PORT }}"
 
-      - name: Deploy to EC2 Instances
+      - name: Deploy Backend to EC2 Instances
         run: |
           for instance_id in ${{ env.INSTANCE_IDS }}; do
             echo "Deploying to instance $instance_id"
@@ -86,35 +95,54 @@ jobs:
               --instance-ids $instance_id \
               --document-name "AWS-RunShellScript" \
               --comment "Deploy backend Docker image" \
-              --parameters '{"commands":[
-                "echo \"RDS Endpoint: ${{ env.RDS_ENDPOINT }}\"",
-                "echo \"RDS Host: ${{ env.RDS_HOST }}\"",
-                "echo \"RDS Port: ${{ env.RDS_PORT }}\"",
-                "echo \"Checking EC2 DNS resolution...\"",
-                "nslookup ${{ env.RDS_HOST }}",
-                "echo \"Checking EC2 connection to RDS...\"",
-                "nc -zv ${{ env.RDS_HOST }} ${{ env.RDS_PORT }}",
-                "export ECR_REGISTRY='${{ steps.login-aws-ecr.outputs.registry }}'",
-                "export ECR_REPOSITORY='${{ secrets.AWS_ECR_REPO }}'",
-                "export BACKEND_IMAGE_TAG='backend-${{ github.sha }}'",
-                "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY",
-                "echo ECR_REGISTRY=$ECR_REGISTRY",
-                "echo ECR_REPOSITORY=$ECR_REPOSITORY",
-                "echo BACKEND_IMAGE_TAG=$BACKEND_IMAGE_TAG",
-                "sudo systemctl restart docker",
-                "docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
-                "docker stop ${{ env.CONTAINER_NAME }} || true",
-                "docker rm ${{ env.CONTAINER_NAME }} || true",
-                "docker run -d --name ${{ env.CONTAINER_NAME }} -p 80:3005 -e NODE_ENV=production -e DB_HOST=${{ env.RDS_HOST }} -e DB_PORT=${{ secrets.DB_PORT }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_NAME=${{ secrets.DB_NAME }} -e DISABLE_DB=false -e DB_SSL=true $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG",
-                "echo \"Checking Docker container environment...\"",
-                "docker exec ${{ env.CONTAINER_NAME }} env | grep DB_",
-                "echo \"Checking Docker container DNS resolution...\"",
-                "docker exec ${{ env.CONTAINER_NAME }} nslookup ${{ env.RDS_HOST }}",
-                "echo \"Checking Docker container connection to RDS...\"",
-                "docker exec ${{ env.CONTAINER_NAME }} nc -zv ${{ env.RDS_HOST }} ${{ env.RDS_PORT }}",
-                "echo \"Docker container logs:\"",
-                "docker logs ${{ env.CONTAINER_NAME }}"
-              ]}' --query "Command.CommandId" --output text)
+              --parameters '{
+                "commands": [
+                  "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}",
+                  "docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }}",
+                  "docker stop ${{ env.BACKEND_CONTAINER_NAME }} || true",
+                  "docker rm ${{ env.BACKEND_CONTAINER_NAME }} || true",
+                  "docker run -d --name ${{ env.BACKEND_CONTAINER_NAME }} -p 3005:3005 -e NODE_ENV=production -e DB_HOST=${{ env.RDS_HOST }} -e DB_PORT=${{ secrets.DB_PORT }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_NAME=${{ secrets.DB_NAME }} -e DISABLE_DB=false -e DB_SSL=true ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }}",
+                  "echo \"Backend Docker container logs:\"",
+                  "docker logs ${{ env.BACKEND_CONTAINER_NAME }}"
+                ]
+              }' --query "Command.CommandId" --output text)
+
+            echo "SSM Command ID: $command_id"
+
+            aws ssm wait command-executed --command-id $command_id --instance-id $instance_id || true
+
+            status=$(aws ssm list-commands --command-id $command_id --query "Commands[0].StatusDetails" --output text)
+
+            echo "Status for instance $instance_id: $status"
+
+            if [ "$status" == "Success" ]; then
+              echo "Command executed successfully for instance $instance_id"
+            else
+              echo "Command failed for instance $instance_id, time to get debugging"
+              aws ssm list-command-invocations --command-id $command_id --details
+              exit 1
+            fi
+          done
+
+      - name: Deploy Frontend to EC2 Instances
+        run: |
+          for instance_id in ${{ env.INSTANCE_IDS }}; do
+            echo "Deploying to instance $instance_id"
+            command_id=$(aws ssm send-command \
+              --instance-ids $instance_id \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy frontend Docker image" \
+              --parameters '{
+                "commands": [
+                  "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}",
+                  "docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }}",
+                  "docker stop ${{ env.FRONTEND_CONTAINER_NAME }} || true",
+                  "docker rm ${{ env.FRONTEND_CONTAINER_NAME }} || true",
+                  "docker run -d --name ${{ env.FRONTEND_CONTAINER_NAME }} -p 80:80 ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }}",
+                  "echo \"Frontend Docker container logs:\"",
+                  "docker logs ${{ env.FRONTEND_CONTAINER_NAME }}"
+                ]
+              }' --query "Command.CommandId" --output text)
 
             echo "SSM Command ID: $command_id"
 
