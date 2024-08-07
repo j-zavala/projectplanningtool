@@ -2,10 +2,11 @@ import { useState } from "react";
 import { TodoDTO } from "./Pages/TodoPage";
 import axios from "axios";
 import { FaEdit, FaCheck } from "react-icons/fa";
+import { toast } from 'react-toastify';
 
 type Props = {
     todo: TodoDTO;
-    updateTodos: (todos: TodoDTO[]) => void;
+    updateTodos: (updatedTodo: TodoDTO) => void;
 };
 
 const Todo = ({ todo, updateTodos }: Props) => {
@@ -28,11 +29,20 @@ const Todo = ({ todo, updateTodos }: Props) => {
     const editTodo = (key: string, value: string | boolean) => {
         const updatedTodo = { ...todo, [key]: value };
         axios
-            .put(`http://localhost:3000/todos/${todo.id}`, {
+            .put(`http://localhost:3005/todos/${todo.id}`, {
                 todo: updatedTodo,
             })
             .then((response) => {
+                console.log("Updated todo, response:", response.data);
                 updateTodos(response.data);
+                toast.success('Todo updated successfully');
+            })
+            .catch((error) => {
+                console.error("Error updating todo:", error);
+                toast.error('Failed to update todo. Please try again.');
+                if (key === 'title') setNewTitle(todo.title);
+                if (key === 'description') setNewDescription(todo.description);
+                if (key === 'done') setComplete(todo.done);
             });
     };
 

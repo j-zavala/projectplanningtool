@@ -8,6 +8,7 @@ export type TodoDTO = {
     title: string;
     description: string;
     done: boolean;
+    createdAt?: Date;
 };
 
 const TodoPage: React.FC = () => {
@@ -20,13 +21,22 @@ const TodoPage: React.FC = () => {
     });
 
     useEffect(() => {
-        axios.get("http://localhost:3000/todos").then((response) => {
-            setTodos(response.data);
-        });
+        axios.get("http://localhost:3005/todos")
+            .then((response) => {
+                console.log("Fetched todos:", response.data);
+                setTodos(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching todos:", error);
+                // Optionally, set an error state here to display to the user
+            });
     }, []);
 
-    const updateTodos = (todos: TodoDTO[]) => {
-        setTodos(todos);
+    const updateTodos = (updatedTodo: TodoDTO) => {
+        console.log("Updating todo:", updatedTodo);
+        setTodos(prevTodos => prevTodos.map(todo =>
+            todo.id === updatedTodo.id ? updatedTodo : todo
+        ));
     };
 
     const updateForm = (
@@ -39,10 +49,19 @@ const TodoPage: React.FC = () => {
     };
 
     const addTodo = () => {
-        axios.post("http://localhost:3000/todos", newTodo).then((response) => {
-            setTodos(response.data);
-        });
+        axios.post("http://localhost:3005/todos", newTodo)
+            .then((response) => {
+                console.log("Added todo, response:", response.data);
+                setTodos(response.data);
+                // Optionally, clear the newTodo state here
+            })
+            .catch((error) => {
+                console.error("Error adding todo:", error);
+                // Optionally, set an error state here to display to the user
+            });
     };
+
+    console.log("Current todos state:", todos);
 
     return (
         <div className="container">
@@ -64,9 +83,17 @@ const TodoPage: React.FC = () => {
                 </div>
             </div>
 
-            {todos.map((todo) => (
-                <Todo key={todo.id} todo={todo} updateTodos={updateTodos} />
-            ))}
+            {Array.isArray(todos) ? (
+                todos.map((todo) => (
+                    <Todo
+                        key={todo.id}
+                        todo={todo}
+                        updateTodos={(updatedTodo) => updateTodos(updatedTodo)}
+                    />
+                ))
+            ) : (
+                <p>No todos available or todos is not an array</p>
+            )}
         </div>
     );
 };

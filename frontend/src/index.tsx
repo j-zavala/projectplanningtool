@@ -6,7 +6,7 @@ import SignUp from "./Pages/Signup";
 import DIPSignUp from "./Pages/DIPSignup";
 import LogIn from "./Pages/LogIn";
 import TodoPage from "./Pages/TodoPage";
-import { ChakraProvider } from "@chakra-ui/react";
+// import { ChakraProvider } from "@chakra-ui/react";
 
 const router = createBrowserRouter([
   {
@@ -39,7 +39,9 @@ const root = ReactDOM.createRoot(
 
 // );
 root.render(
-  <ChakraProvider>
+  // <ChakraProvider>
+  <div>
     <RouterProvider router={router} />
-  </ChakraProvider>
+  </div>
+  // </ChakraProvider>
 );
