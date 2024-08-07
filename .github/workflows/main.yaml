@@ -10,7 +10,6 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     env:
-      # CONTAINER_NAME: backend-container
       BACKEND_CONTAINER_NAME: backend-container
       FRONTEND_CONTAINER_NAME: frontend-container
     steps:
