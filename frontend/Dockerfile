@@ -6,21 +6,35 @@ RUN apt-get update && apt-get install -y dnsutils netcat-openbsd && rm -rf /var/
 
 # Create app directory
 WORKDIR /app
+
 # Ensures both package.json AND package-lock.json are copied
 COPY package.json ./
 COPY package-lock.json ./
+
 # Install app dependencies
 RUN npm ci
+
 # Copy the rest of the application code, including the scripts directory
 COPY . .
+
 # Creates a "dist" folder with the production build
 RUN npm run build
 
-
+# NGINX Production stage
 FROM nginx:latest AS prod
+
+# Healthcheck to ensure the container is running
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
+
+# Copy the build artifacts from the previous stage
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-EXPOSE 80/tcp
+
+# Copy custom NGINX configuration
+COPY /frontend/nginx.conf /etc/nginx/nginx.conf
+
+# Expose port 80
+EXPOSE 80
+
+# Start NGINX
 CMD ["nginx", "-g", "daemon off;"]
