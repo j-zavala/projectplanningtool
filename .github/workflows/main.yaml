@@ -84,35 +84,6 @@ jobs:
           echo "Verifying stored RDS Host: ${{ env.RDS_HOST }}"
           echo "Verifying stored RDS Port: ${{ env.RDS_PORT }}"
 
-      - name: Define and Export Logging Function
-        run: |
-          log_container_info() {
-            local container_name=$1
-            local image_tag=$2
-            local is_backend=$3
-
-            echo "Logging information for $container_name"
-            echo "RDS Endpoint: ${{ env.RDS_ENDPOINT }}"
-            echo "Checking EC2 DNS resolution..."
-            nslookup ${{ env.RDS_HOST }}
-            echo "Checking EC2 connection to RDS..."
-            nc -zv ${{ env.RDS_HOST }} ${{ env.RDS_PORT }} || echo "Connection failed"
-            echo "ECR Registry: ${{ env.ECR_REGISTRY }}"
-            echo "ECR Repository: ${{ env.ECR_REPOSITORY }}"
-            echo "Image Tag: $image_tag"
-            echo "Checking Docker container environment..."
-            docker exec $container_name env
-            echo "Checking Docker container DNS resolution..."
-            docker exec $container_name nslookup ${{ env.RDS_HOST }} || echo "DNS resolution failed"
-            if [ "$is_backend" = true ]; then
-              echo "Checking Docker container connection to RDS..."
-              docker exec $container_name nc -zv ${{ env.RDS_HOST }} ${{ env.RDS_PORT }} || echo "Connection failed"
-            fi
-            echo "Docker container logs:"
-            docker logs $container_name
-          }
-          export -f log_container_info
-
       - name: Deploy Backend to EC2 Instances
         run: |
           for instance_id in ${{ env.INSTANCE_IDS }}; do
