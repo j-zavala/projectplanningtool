@@ -35,25 +35,22 @@ jobs:
           echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
           echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
 
-      # LOGGING
       - name: Log Environment Variables
         run: |
-          echo "ECR_REGISTRY: $ECR_REGISTRY"
-          echo "ECR_REPOSITORY: $ECR_REPOSITORY"
-          echo "BACKEND_IMAGE_TAG: $BACKEND_IMAGE_TAG"
-          echo "FRONTEND_IMAGE_TAG: $FRONTEND_IMAGE_TAG"
+          echo "ECR_REGISTRY: ${{ env.ECR_REGISTRY }}"
+          echo "ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}"
+          echo "BACKEND_IMAGE_TAG: ${{ env.BACKEND_IMAGE_TAG }}"
+          echo "FRONTEND_IMAGE_TAG: ${{ env.FRONTEND_IMAGE_TAG }}"
 
-      # Uses Dockerfile in api directory to build and push the backend image to AWS ECR
       - name: Build & Push Backend Docker Image to AWS ECR
-        # in docker build, all steps in Dockerfile are followed to create final image
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
+          docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }} ./api
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }}
 
       - name: Build & Push Frontend Docker Image to AWS ECR
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG ./frontend
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
+          docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }} ./frontend
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }}
 
       - name: Fetch EC2 Instance IDs
         run: |
@@ -65,10 +62,9 @@ jobs:
           echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
           echo "Fetched EC2 Instance IDs: $INSTANCE_IDS"
 
-      # LOGGING
       - name: Log Fetched EC2 Instance IDs
         run: |
-          echo "INSTANCE_IDS: $INSTANCE_IDS"
+          echo "INSTANCE_IDS: ${{ env.INSTANCE_IDS }}"
 
       - name: Fetch RDS Endpoint from Parameter Store
         run: |
@@ -94,7 +90,7 @@ jobs:
             local container_name=$1
             local image_tag=$2
             local is_backend=$3
-            
+
             echo "Logging information for $container_name"
             echo "RDS Endpoint: ${{ env.RDS_ENDPOINT }}"
             echo "Checking EC2 DNS resolution..."
