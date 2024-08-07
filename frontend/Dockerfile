@@ -31,7 +31,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy custom NGINX configuration
-COPY /frontend/nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expose port 80
 EXPOSE 80
