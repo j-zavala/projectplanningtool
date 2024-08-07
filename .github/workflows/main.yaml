@@ -132,7 +132,7 @@ jobs:
                   "docker stop ${{ env.BACKEND_CONTAINER_NAME }} || true",
                   "docker rm ${{ env.BACKEND_CONTAINER_NAME }} || true",
                   "docker run -d --name ${{ env.BACKEND_CONTAINER_NAME }} -p 3005:3005 -e NODE_ENV=production -e DB_HOST=${{ env.RDS_HOST }} -e DB_PORT=${{ secrets.DB_PORT }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_NAME=${{ secrets.DB_NAME }} -e DISABLE_DB=false -e DB_SSL=true ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }}",
-                  "log_container_info ${{ env.BACKEND_CONTAINER_NAME }} ${{ env.BACKEND_IMAGE_TAG }} true"
+                  "source ~/.bashrc && log_container_info ${{ env.BACKEND_CONTAINER_NAME }} ${{ env.BACKEND_IMAGE_TAG }} true"
                 ]
               }' --query "Command.CommandId" --output text)
 
@@ -172,7 +172,7 @@ jobs:
                   "docker stop ${{ env.FRONTEND_CONTAINER_NAME }} || true",
                   "docker rm ${{ env.FRONTEND_CONTAINER_NAME }} || true",
                   "docker run -d --name ${{ env.FRONTEND_CONTAINER_NAME }} -p 80:3000 ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }}",
-                  "log_container_info ${{ env.FRONTEND_CONTAINER_NAME }} ${{ env.FRONTEND_IMAGE_TAG }} false"
+                  "source ~/.bashrc && log_container_info ${{ env.FRONTEND_CONTAINER_NAME }} ${{ env.FRONTEND_IMAGE_TAG }} false"
                 ]
               }' --query "Command.CommandId" --output text)
 
