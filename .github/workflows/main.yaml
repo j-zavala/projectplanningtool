@@ -7,25 +7,29 @@ on:
 
 jobs:
   build:
-    name: Build Docker Image
+    name: Build and Deploy Docker Images
     runs-on: ubuntu-latest
     env:
       BACKEND_CONTAINER_NAME: backend-container
       FRONTEND_CONTAINER_NAME: frontend-container
+      DOCKER_NETWORK_NAME: my_network
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+
       - name: Log into AWS ECR
         id: login-aws-ecr
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: private
+
       - name: Set Environment Variables
         run: |
           echo "ECR_REGISTRY=${{ steps.login-aws-ecr.outputs.registry }}" >> $GITHUB_ENV
@@ -120,7 +124,8 @@ jobs:
                   "docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }}",
                   "docker stop ${{ env.BACKEND_CONTAINER_NAME }} || true",
                   "docker rm ${{ env.BACKEND_CONTAINER_NAME }} || true",
-                  "docker run -d --name ${{ env.BACKEND_CONTAINER_NAME }} -p 3001:3005 -e NODE_ENV=production -e DB_HOST=${{ env.RDS_HOST }} -e DB_PORT=${{ secrets.DB_PORT }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_NAME=${{ secrets.DB_NAME }} -e DISABLE_DB=false -e DB_SSL=true ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }}",
+                  "docker network create ${{ env.DOCKER_NETWORK_NAME }} || true",
+                  "docker run -d --name ${{ env.BACKEND_CONTAINER_NAME }} --network ${{ env.DOCKER_NETWORK_NAME }} -p 3001:3005 -e NODE_ENV=production -e DB_HOST=${{ env.RDS_HOST }} -e DB_PORT=${{ secrets.DB_PORT }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_NAME=${{ secrets.DB_NAME }} -e DISABLE_DB=false -e DB_SSL=true ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.BACKEND_IMAGE_TAG }}",
                   "log_container_info ${{ env.BACKEND_CONTAINER_NAME }} ${{ env.BACKEND_IMAGE_TAG }}"
                 ]
               }' --query "Command.CommandId" --output text)
@@ -169,7 +174,7 @@ jobs:
                   "docker pull ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }}",
                   "docker stop ${{ env.FRONTEND_CONTAINER_NAME }} || true",
                   "docker rm ${{ env.FRONTEND_CONTAINER_NAME }} || true",
-                  "docker run -d --name ${{ env.FRONTEND_CONTAINER_NAME }} -p 80:3000 ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }}",
+                  "docker run -d --name ${{ env.FRONTEND_CONTAINER_NAME }} --network ${{ env.DOCKER_NETWORK_NAME }} -p 80:3000 ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.FRONTEND_IMAGE_TAG }}",
                   "log_container_info ${{ env.FRONTEND_CONTAINER_NAME }} ${{ env.FRONTEND_IMAGE_TAG }}"
                 ]
               }' --query "Command.CommandId" --output text)
