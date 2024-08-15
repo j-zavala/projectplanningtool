@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "../App.css";
 import Todo from "../Todo";
 import axios from "axios";
+import { host } from "../constants";
 
 export type TodoDTO = {
     id: number;
@@ -10,6 +11,7 @@ export type TodoDTO = {
     done: boolean;
     createdAt?: Date;
 };
+
 
 const TodoPage: React.FC = () => {
     const [todos, setTodos] = useState<TodoDTO[]>([]);
@@ -21,7 +23,7 @@ const TodoPage: React.FC = () => {
     });
 
     useEffect(() => {
-        axios.get("http://localhost:3005/todos")
+        axios.get(`http://${host}:3005/api/todos`)
             .then((response) => {
                 console.log("Fetched todos:", response.data);
                 setTodos(response.data);
@@ -49,7 +51,7 @@ const TodoPage: React.FC = () => {
     };
 
     const addTodo = () => {
-        axios.post("http://localhost:3005/todos", newTodo)
+        axios.post(`http://${host}:3005/api/todos`, newTodo)
             .then((response) => {
                 console.log("Added todo, response:", response.data);
                 setTodos(response.data);

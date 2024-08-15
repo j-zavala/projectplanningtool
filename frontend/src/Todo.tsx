@@ -3,6 +3,7 @@ import { TodoDTO } from "./Pages/TodoPage";
 import axios from "axios";
 import { FaEdit, FaCheck } from "react-icons/fa";
 import { toast } from 'react-toastify';
+import { host } from "./constants";
 
 type Props = {
     todo: TodoDTO;
@@ -29,7 +30,7 @@ const Todo = ({ todo, updateTodos }: Props) => {
     const editTodo = (key: string, value: string | boolean) => {
         const updatedTodo = { ...todo, [key]: value };
         axios
-            .put(`http://localhost:3005/todos/${todo.id}`, {
+            .put(`http://${host}:3005/api/todos/${todo.id}`, {
                 todo: updatedTodo,
             })
             .then((response) => {
