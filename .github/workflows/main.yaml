@@ -142,3 +142,25 @@ jobs:
         with:
           name: build-times-${{ matrix.run_number }}
           path: build_times.txt
+
+  aggregate-build-times:
+    name: Aggregate Build Times
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+
+    steps:
+      - name: Download all build times artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-times-*
+          path: aggregated_build_times
+
+      - name: Combine all build times into a single file
+        run: |
+          cat aggregated_build_times/build-times-*/build_times.txt > combined_build_times.txt
+
+      - name: Upload aggregated build times
+        uses: actions/upload-artifact@v3
+        with:
+          name: aggregated-build-times
+          path: combined_build_times.txt
