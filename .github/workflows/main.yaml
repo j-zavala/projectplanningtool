@@ -35,17 +35,20 @@ jobs:
         run: |
           echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_ENV
           echo "TIMESTAMP=$(date +%s)" >> $GITHUB_ENV
+          echo "DATE_TAG=$(date +%Y%m%d)" >> $GITHUB_ENV
           echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
           echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
 
       - name: Check for existing images and pull if available
         run: |
-          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-latest; then
+          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-$DATE_TAG || \
+             docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-$(date -d "yesterday" +%Y%m%d); then
             echo "BACKEND_CACHE_EXISTS=true" >> $GITHUB_ENV
           else
             echo "BACKEND_CACHE_EXISTS=false" >> $GITHUB_ENV
           fi
-          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-latest; then
+          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$DATE_TAG || \
+             docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$(date -d "yesterday" +%Y%m%d); then
             echo "FRONTEND_CACHE_EXISTS=true" >> $GITHUB_ENV
           else
             echo "FRONTEND_CACHE_EXISTS=false" >> $GITHUB_ENV
@@ -57,13 +60,15 @@ jobs:
           if [ "$BACKEND_CACHE_EXISTS" = "true" ]; then
             echo "Using cache for backend"
             time docker build \
-              --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:backend-latest \
+              --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:backend-$DATE_TAG \
               -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG \
+              -t $ECR_REGISTRY/$ECR_REPOSITORY:backend-$DATE_TAG \
               ./api
           else
             echo "Building backend without cache"
             time docker build \
               -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG \
+              -t $ECR_REGISTRY/$ECR_REPOSITORY:backend-$DATE_TAG \
               ./api
           fi
 
@@ -71,30 +76,24 @@ jobs:
           if [ "$FRONTEND_CACHE_EXISTS" = "true" ]; then
             echo "Using cache for frontend"
             time docker build \
-              --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:frontend-latest \
+              --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$DATE_TAG \
               -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG \
+              -t $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$DATE_TAG \
               ./frontend
           else
             echo "Building frontend without cache"
             time docker build \
               -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG \
+              -t $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$DATE_TAG \
               ./frontend
           fi
 
       - name: Push Docker images
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:backend-$DATE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
-
-      - name: Update latest tags
-        run: |
-          # For backend
-          MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=$BACKEND_IMAGE_TAG --query 'images[].imageManifest' --output text)
-          aws ecr put-image --repository-name $ECR_REPOSITORY --image-tag backend-latest --image-manifest "$MANIFEST"
-
-          # For frontend
-          MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=$FRONTEND_IMAGE_TAG --query 'images[].imageManifest' --output text)
-          aws ecr put-image --repository-name $ECR_REPOSITORY --image-tag frontend-latest --image-manifest "$MANIFEST"
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$DATE_TAG
 
       - name: Fetch EC2 Instance IDs
         run: |
