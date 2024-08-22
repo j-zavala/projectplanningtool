@@ -62,7 +62,7 @@ jobs:
 
       - name: Deploy to EC2 Instances
         env:
-          BACKEND_ENV: |
+          BACKEND_ENV: >-
             NODE_ENV=production
             DB_HOST=${{ env.RDS_HOST }}
             DB_PORT=${{ secrets.DB_PORT }}
@@ -79,24 +79,30 @@ jobs:
             local port_mapping=$4
             local env_vars=$5
 
+            # Properly format env vars for docker run command
+            local formatted_env_vars=""
+            if [ -n "$env_vars" ]; then
+              formatted_env_vars=$(echo "$env_vars" | sed 's/^/-e /' | sed 's/ / -e /g')
+            fi
+
             aws ssm send-command \
-              --instance-ids $instance_id \
+              --instance-ids "$instance_id" \
               --document-name "AWS-RunShellScript" \
               --comment "Deploy $container_name" \
-              --parameters "{
-                \"commands\": [
-                  \"aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY\",
-                  \"docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag\",
-                  \"docker stop $container_name || true\",
-                  \"docker rm $container_name || true\",
-                  \"docker run -d --name $container_name $port_mapping $env_vars $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag\",
-                  \"docker logs $container_name\"
+              --parameters '{
+                "commands": [
+                  "aws ecr get-login-password --region '"$AWS_REGION"' | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
+                  "docker pull '"$ECR_REGISTRY/$ECR_REPOSITORY:$image_tag"'",
+                  "docker stop '"$container_name"' || true",
+                  "docker rm '"$container_name"' || true",
+                  "docker run -d --name '"$container_name"' '"$port_mapping"' '"$formatted_env_vars"' '"$ECR_REGISTRY/$ECR_REPOSITORY:$image_tag"'",
+                  "docker logs '"$container_name"'"
                 ]
-              }" \
+              }' \
               --output text
           }
 
           for instance_id in $INSTANCE_IDS; do
-            deploy_container $instance_id $BACKEND_CONTAINER_NAME $BACKEND_IMAGE_TAG "-p 3001:3005" "$BACKEND_ENV"
-            deploy_container $instance_id $FRONTEND_CONTAINER_NAME $FRONTEND_IMAGE_TAG "-p 80:3000" ""
+            deploy_container "$instance_id" "$BACKEND_CONTAINER_NAME" "$BACKEND_IMAGE_TAG" "-p 3001:3005" "$BACKEND_ENV"
+            deploy_container "$instance_id" "$FRONTEND_CONTAINER_NAME" "$FRONTEND_IMAGE_TAG" "-p 80:3000" ""
           done
