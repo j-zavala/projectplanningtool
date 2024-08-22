@@ -62,7 +62,7 @@ jobs:
             local cache_from=$3
             local image_tag=$4
             local date_tag=$5
-            local context_path=
+            local context_path=$6
             echo "Building $image_name (Cache: $cache_exists)"
             start_time=$(date +%s)
             if [ "$cache_exists" = "true" ]; then
@@ -94,7 +94,8 @@ jobs:
           echo "Build Date: $(date)" >> build_times.txt
           echo "Backend build time: $BUILD_TIME_BACKEND seconds (Cache: $BACKEND_CACHE_EXISTS)" >> build_times.txt
           echo "Frontend build time: $BUILD_TIME_FRONTEND seconds (Cache: $FRONTEND_CACHE_EXISTS)" >> build_times.txt
-          echo "---" >> build_times.t
+          echo "---" >> build_times.txt
+
       - name: Upload build times
         uses: actions/upload-artifact@v2
         with:
