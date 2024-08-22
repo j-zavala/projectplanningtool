@@ -35,9 +35,9 @@ jobs:
         run: |
           echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_ENV
           echo "TIMESTAMP=$(date +%s)" >> $GITHUB_ENV
-          echo "CACHE_TAG=$(date +%Y%m%d)-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
-          echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
-          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
+          echo "CACHE_TAG=$(date +%Y%m%d)-${{ github.run_number }}-${{ github.run_attempt }}-$TIMESTAMP" >> $GITHUB_ENV
+          echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-${{ github.run_attempt }}-$TIMESTAMP" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-${{ github.run_attempt }}-$TIMESTAMP" >> $GITHUB_ENV
 
       - name: Check for existing images and pull if available
         run: |
