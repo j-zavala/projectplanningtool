@@ -149,16 +149,15 @@ jobs:
     needs: build-and-deploy
 
     steps:
-      - name: Set up GitHub CLI
-        run: sudo apt-get install gh -y
-
       - name: Download build times artifacts
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p aggregated_build_times
           for i in {1..20}; do
-            gh run download -n build-times-$i --dir aggregated_build_times
+            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -L "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" | \
+              jq -r --arg i $i '.artifacts[] | select(.name == ("build-times-" + $i)) | .archive_download_url' | \
+              xargs -I {} curl -L -o aggregated_build_times/build-times-$i.zip {}
+            unzip -o aggregated_build_times/build-times-$i.zip -d aggregated_build_times/build-times-$i
           done
 
       - name: Combine all build times into a single file
