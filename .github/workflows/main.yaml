@@ -149,17 +149,16 @@ jobs:
     needs: build-and-deploy
 
     steps:
-      - name: Set up GitHub CLI
-        run: sudo apt-get install gh -y
-
       - name: Download build times artifacts
         run: |
           mkdir -p aggregated_build_times
-          gh run list --limit 1 | grep build-and-deploy | awk '{print $1}' | xargs -I {} gh run download {} --dir aggregated_build_times
+          for i in {1..20}; do
+            gh run download -n build-times-$i --dir aggregated_build_times
+          done
 
       - name: Combine all build times into a single file
         run: |
-          cat aggregated_build_times/build-times-*/build_times.txt > combined_build_times.txt
+          find aggregated_build_times -name "build_times.txt" -exec cat {} + > combined_build_times.txt
 
       - name: Upload aggregated build times
         uses: actions/upload-artifact@v3
