@@ -1,4 +1,4 @@
-name: Deploy Multiple Times
+name: Deploy
 
 on:
   push:
@@ -15,32 +15,6 @@ jobs:
   build-and-deploy:
     name: Build and Deploy Docker Images
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        run_number:
-          [
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            12,
-            13,
-            14,
-            15,
-            16,
-            17,
-            18,
-            19,
-            20,
-          ]
 
     steps:
       - name: Checkout code
@@ -61,123 +35,74 @@ jobs:
         run: |
           echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_ENV
           echo "TIMESTAMP=$(date +%s)" >> $GITHUB_ENV
-          echo "CACHE_TAG=$(date +%Y%m%d)-${{ github.run_id }}-${{ matrix.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
-          echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_id }}-${{ matrix.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
-          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_id }}-${{ matrix.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
+          echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
 
-      - name: Check for existing images and pull if available
+      - name: Build and push Docker images
         run: |
-          LATEST_BACKEND_TAG=$(aws ecr describe-images --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[?starts_with(@, `backend-cache-`)] | [0]' --output text)
-          LATEST_FRONTEND_TAG=$(aws ecr describe-images --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[?starts_with(@, `frontend-cache-`)] | [0]' --output text)
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
 
-          if [ "$LATEST_BACKEND_TAG" != "None" ] && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$LATEST_BACKEND_TAG; then
-            echo "BACKEND_CACHE_EXISTS=true" >> $GITHUB_ENV
-            echo "BACKEND_CACHE_TAG=$LATEST_BACKEND_TAG" >> $GITHUB_ENV
-          else
-            echo "BACKEND_CACHE_EXISTS=false" >> $GITHUB_ENV
-          fi
-
-          if [ "$LATEST_FRONTEND_TAG" != "None" ] && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$LATEST_FRONTEND_TAG; then
-            echo "FRONTEND_CACHE_EXISTS=true" >> $GITHUB_ENV
-            echo "FRONTEND_CACHE_TAG=$LATEST_FRONTEND_TAG" >> $GITHUB_ENV
-          else
-            echo "FRONTEND_CACHE_EXISTS=false" >> $GITHUB_ENV
-          fi
-
-      - name: Build and measure time (with cache if available)
+      - name: Fetch EC2 Instance IDs
         run: |
-          build_and_measure() {
-            local image_name=$1
-            local cache_exists=$2
-            local cache_from=$3
-            local image_tag=$4
-            local cache_tag=$5
-            local context_path=$6
+          INSTANCE_IDS=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=cwc-private-ec2-1,cwc-private-ec2-2" "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[?State.Name=='running'].[InstanceId]" \
+            --output text | tr '\n' ' ')
+          echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_ENV
 
-            echo "Building $image_name (Cache: $cache_exists)"
-            start_time=$(date +%s)
-            if [ "$cache_exists" = "true" ]; then
-              docker build \
-                --cache-from $cache_from \
-                -t $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag \
-                -t $ECR_REGISTRY/$ECR_REPOSITORY:$cache_tag \
-                $context_path
-            else
-              docker build \
-                -t $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag \
-                -t $ECR_REGISTRY/$ECR_REPOSITORY:$cache_tag \
-                $context_path
+      - name: Fetch RDS Endpoint
+        run: |
+          RDS_ENDPOINT=$(aws ssm get-parameter --name "/cwc/rds/endpoint" --with-decryption --query "Parameter.Value" --output text)
+          echo "RDS_ENDPOINT=$RDS_ENDPOINT" >> $GITHUB_ENV
+          echo "RDS_HOST=$(echo $RDS_ENDPOINT | cut -d':' -f1)" >> $GITHUB_ENV
+          echo "RDS_PORT=$(echo $RDS_ENDPOINT | cut -d':' -f2)" >> $GITHUB_ENV
+
+      - name: Deploy to EC2 Instances
+        env:
+          BACKEND_ENV: >-
+            NODE_ENV=production
+            DB_HOST=${{ env.RDS_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DISABLE_DB=false
+            DB_SSL=true
+        run: |
+          deploy_container() {
+            local instance_id=$1
+            local container_name=$2
+            local image_tag=$3
+            local port_mapping=$4
+            local env_vars=$5
+
+            # Properly format env vars for docker run command
+            local formatted_env_vars=""
+            if [ -n "$env_vars" ]; then
+              formatted_env_vars=$(echo "$env_vars" | sed 's/^/-e /' | sed 's/ / -e /g')
             fi
-            end_time=$(date +%s)
-            build_time=$((end_time - start_time))
-            echo "BUILD_TIME_${image_name^^}=$build_time" >> $GITHUB_ENV
-            echo "$image_name build time: $build_time seconds"
+
+            aws ssm send-command \
+              --instance-ids "$instance_id" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy $container_name" \
+              --parameters '{
+                "commands": [
+                  "aws ecr get-login-password --region '"$AWS_REGION"' | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
+                  "docker pull '"$ECR_REGISTRY/$ECR_REPOSITORY:$image_tag"'",
+                  "docker stop '"$container_name"' || true",
+                  "docker rm '"$container_name"' || true",
+                  "docker run -d --name '"$container_name"' '"$port_mapping"' '"$formatted_env_vars"' '"$ECR_REGISTRY/$ECR_REPOSITORY:$image_tag"'",
+                  "docker logs '"$container_name"'"
+                ]
+              }' \
+              --output text
           }
 
-          build_and_measure "backend" "$BACKEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_CACHE_TAG" "$BACKEND_IMAGE_TAG" "backend-cache-$CACHE_TAG" "./api"
-          build_and_measure "frontend" "$FRONTEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_CACHE_TAG" "$FRONTEND_IMAGE_TAG" "frontend-cache-$CACHE_TAG" "./frontend"
-
-          echo "===== Build Time Summary ====="
-          echo "Backend build time: $BUILD_TIME_BACKEND seconds (Cache: $BACKEND_CACHE_EXISTS)"
-          echo "Frontend build time: $BUILD_TIME_FRONTEND seconds (Cache: $FRONTEND_CACHE_EXISTS)"
-          echo "==============================="
-
-      - name: Push Docker images
-        run: |
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:backend-cache-$CACHE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:frontend-cache-$CACHE_TAG
-
-      - name: Save build times to file
-        run: |
-          echo "Run Number: ${{ matrix.run_number }}" >> build_times.txt
-          echo "Build Date: $(date)" >> build_times.txt
-          echo "Backend build time: $BUILD_TIME_BACKEND seconds (Cache: $BACKEND_CACHE_EXISTS)" >> build_times.txt
-          echo "Frontend build time: $BUILD_TIME_FRONTEND seconds (Cache: $FRONTEND_CACHE_EXISTS)" >> build_times.txt
-          echo "------------------------------" >> build_times.txt
-
-      - name: Upload build times
-        uses: actions/upload-artifact@v3
-        with:
-          name: build-times-${{ matrix.run_number }}
-          path: build_times.txt
-
-  aggregate-build-times:
-    name: Aggregate Build Times
-    runs-on: ubuntu-latest
-    needs: build-and-deploy
-
-    steps:
-      - name: Install jq and curl (if needed)
-        run: sudo apt-get install -y jq curl
-
-      - name: Download build times artifacts
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p aggregated_build_times
-          # Get all artifact URLs and names
-          curl -H "Authorization: token $GH_TOKEN" \
-            -L "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" > artifacts.json
-
-          # Filter and download artifacts with names starting with "build-times-"
-          for i in {1..20}; do
-            url=$(jq -r --arg i $i '.artifacts[] | select(.name == ("build-times-" + $i)) | .archive_download_url' artifacts.json)
-            if [ "$url" != "null" ]; then
-              curl -H "Authorization: token $GH_TOKEN" -L $url -o aggregated_build_times/build-times-$i.zip
-              unzip -o aggregated_build_times/build-times-$i.zip -d aggregated_build_times/build-times-$i
-            else
-              echo "Artifact build-times-$i not found!"
-            fi
+          for instance_id in $INSTANCE_IDS; do
+            deploy_container "$instance_id" "$BACKEND_CONTAINER_NAME" "$BACKEND_IMAGE_TAG" "-p 3001:3005" "$BACKEND_ENV"
+            deploy_container "$instance_id" "$FRONTEND_CONTAINER_NAME" "$FRONTEND_IMAGE_TAG" "-p 80:3000" ""
           done
-
-      - name: Combine all build times into a single file
-        run: |
-          find aggregated_build_times -name "build_times.txt" -exec cat {} + > combined_build_times.txt
-
-      - name: Upload aggregated build times
-        uses: actions/upload-artifact@v3
-        with:
-          name: aggregated-build-times
-          path: combined_build_times.txt
