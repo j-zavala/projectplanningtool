@@ -35,20 +35,18 @@ jobs:
         run: |
           echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_ENV
           echo "TIMESTAMP=$(date +%s)" >> $GITHUB_ENV
-          echo "DATE_TAG=$(date +%Y%m%d)" >> $GITHUB_ENV
+          echo "CACHE_TAG=$(date +%Y%m%d)-${{ github.run_number }}" >> $GITHUB_ENV
           echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
           echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
 
       - name: Check for existing images and pull if available
         run: |
-          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-$DATE_TAG || \
-             docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-$(date -d "yesterday" +%Y%m%d); then
+          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-cache-latest; then
             echo "BACKEND_CACHE_EXISTS=true" >> $GITHUB_ENV
           else
             echo "BACKEND_CACHE_EXISTS=false" >> $GITHUB_ENV
           fi
-          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$DATE_TAG || \
-             docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-$(date -d "yesterday" +%Y%m%d); then
+          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-cache-latest; then
             echo "FRONTEND_CACHE_EXISTS=true" >> $GITHUB_ENV
           else
             echo "FRONTEND_CACHE_EXISTS=false" >> $GITHUB_ENV
@@ -57,37 +55,54 @@ jobs:
       - name: Build and measure time (with cache if available)
         run: |
           build_and_measure() {
-             local image_name=$1
-             local cache_exists=$2
-             local cache_from=$3
-             local image_tag=$4
-             local date_tag=$5
-             local context_path=$6
-             echo "Building $image_name (Cache: $cache_exists)"
-             start_time=$(date +%s)
-             if [ "$cache_exists" = "true" ]; then
-               docker build \
-                 --cache-from $cache_from \
-                 -t $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag \
-                 -t $ECR_REGISTRY/$ECR_REPOSITORY:$date_tag \
-                 $context_path
-             else
-               docker build \
-                 -t $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag \
-                 -t $ECR_REGISTRY/$ECR_REPOSITORY:$date_tag \
-                 $context_path
-             fi
-             end_time=$(date +%s)
-             build_time=$((end_time - start_time))
-             echo "BUILD_TIME_${image_name^^}=$build_time" >> $GITHUB_ENV
-             echo "$image_name build time: $build_time seconds"
-           }
-           build_and_measure "backend" "$BACKEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:backend-$DATE_TAG" "$BACKEND_IMAGE_TAG" "backend-$DATE_TAG" "./api"
-           build_and_measure "frontend" "$FRONTEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:frontend-$DATE_TAG" "$FRONTEND_IMAGE_TAG" "frontend-$DATE_TAG" "./frontend"
-           echo "===== Build Time Summary ====="
-           echo "Backend build time: $BUILD_TIME_BACKEND seconds (Cache: $BACKEND_CACHE_EXISTS)"
-           echo "Frontend build time: $BUILD_TIME_FRONTEND seconds (Cache: $FRONTEND_CACHE_EXISTS)"
-           echo "==============================="
+            local image_name=$1
+            local cache_exists=$2
+            local cache_from=$3
+            local image_tag=$4
+            local cache_tag=$5
+            local context_path=$6
+            echo "Building $image_name (Cache: $cache_exists)"
+            start_time=$(date +%s)
+            if [ "$cache_exists" = "true" ]; then
+              docker build \
+                --cache-from $cache_from \
+                -t $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag \
+                -t $ECR_REGISTRY/$ECR_REPOSITORY:$cache_tag \
+                $context_path
+            else
+              docker build \
+                -t $ECR_REGISTRY/$ECR_REPOSITORY:$image_tag \
+                -t $ECR_REGISTRY/$ECR_REPOSITORY:$cache_tag \
+                $context_path
+            fi
+            end_time=$(date +%s)
+            build_time=$((end_time - start_time))
+            echo "BUILD_TIME_${image_name^^}=$build_time" >> $GITHUB_ENV
+            echo "$image_name build time: $build_time seconds"
+          }
+
+          build_and_measure "backend" "$BACKEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:backend-cache-latest" "$BACKEND_IMAGE_TAG" "backend-cache-$CACHE_TAG" "./api"
+          build_and_measure "frontend" "$FRONTEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:frontend-cache-latest" "$FRONTEND_IMAGE_TAG" "frontend-cache-$CACHE_TAG" "./frontend"
+
+          echo "===== Build Time Summary ====="
+          echo "Backend build time: $BUILD_TIME_BACKEND seconds (Cache: $BACKEND_CACHE_EXISTS)"
+          echo "Frontend build time: $BUILD_TIME_FRONTEND seconds (Cache: $FRONTEND_CACHE_EXISTS)"
+          echo "==============================="
+
+      - name: Push Docker images
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:backend-cache-$CACHE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:frontend-cache-$CACHE_TAG
+
+      - name: Update cache latest tags
+        run: |
+          MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=backend-cache-$CACHE_TAG --query 'images[].imageManifest' --output text)
+          aws ecr put-image --repository-name $ECR_REPOSITORY --image-tag backend-cache-latest --image-manifest "$MANIFEST"
+
+          MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=frontend-cache-$CACHE_TAG --query 'images[].imageManifest' --output text)
+          aws ecr put-image --repository-name $ECR_REPOSITORY --image-tag frontend-cache-latest --image-manifest "$MANIFEST"
 
       - name: Save build times to file
         run: |
