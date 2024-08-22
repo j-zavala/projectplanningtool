@@ -149,23 +149,23 @@ jobs:
     needs: build-and-deploy
 
     steps:
+      - name: Install jq and curl (if needed)
+        run: sudo apt-get install -y jq curl
+
       - name: Download build times artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p aggregated_build_times
+          # Get all artifact URLs and names
+          curl -H "Authorization: token $GH_TOKEN" \
+            -L "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" > artifacts.json
+
+          # Filter and download artifacts with names starting with "build-times-"
           for i in {1..20}; do
-            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -L "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" | \
-              jq -r --arg i $i '.artifacts[] | select(.name == ("build-times-" + $i)) | .archive_download_url' | \
-              xargs -I {} curl -L -o aggregated_build_times/build-times-$i.zip {}
-            unzip -o aggregated_build_times/build-times-$i.zip -d aggregated_build_times/build-times-$i
-          done
-
-      - name: Combine all build times into a single file
-        run: |
-          find aggregated_build_times -name "build_times.txt" -exec cat {} + > combined_build_times.txt
-
-      - name: Upload aggregated build times
-        uses: actions/upload-artifact@v3
-        with:
-          name: aggregated-build-times
-          path: combined_build_times.txt
+            url=$(jq -r --arg i $i '.artifacts[] | select(.name == ("build-times-" + $i)) | .archive_download_url' artifacts.json)
+            if [ "$url" != "null" ]; then
+              curl -H "Authorization: token $GH_TOKEN" -L $url -o aggregated_build_times/build-times-$i.zip
+              unzip -o aggregated_build_times/build-times-$i.zip -d aggregated_build_times/build-times-$i
+            else
+              echo "Artifact build-times-$i not found!"
