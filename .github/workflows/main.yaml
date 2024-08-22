@@ -149,7 +149,12 @@ jobs:
     needs: build-and-deploy
 
     steps:
+      - name: Set up GitHub CLI
+        run: sudo apt-get install gh -y
+
       - name: Download build times artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p aggregated_build_times
           for i in {1..20}; do
