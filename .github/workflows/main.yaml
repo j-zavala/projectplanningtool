@@ -102,14 +102,6 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:frontend-cache-$CACHE_TAG
 
-      - name: Update cache latest tags
-        run: |
-          MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=backend-cache-$CACHE_TAG --query 'images[].imageManifest' --output text)
-          aws ecr put-image --repository-name $ECR_REPOSITORY --image-tag backend-cache-latest --image-manifest "$MANIFEST"
-
-          MANIFEST=$(aws ecr batch-get-image --repository-name $ECR_REPOSITORY --image-ids imageTag=frontend-cache-$CACHE_TAG --query 'images[].imageManifest' --output text)
-          aws ecr put-image --repository-name $ECR_REPOSITORY --image-tag frontend-cache-latest --image-manifest "$MANIFEST"
-
       - name: Save build times to file
         run: |
           echo "Build Date: $(date)" >> build_times.txt
