@@ -169,3 +169,15 @@ jobs:
               unzip -o aggregated_build_times/build-times-$i.zip -d aggregated_build_times/build-times-$i
             else
               echo "Artifact build-times-$i not found!"
+            fi
+          done
+
+      - name: Combine all build times into a single file
+        run: |
+          find aggregated_build_times -name "build_times.txt" -exec cat {} + > combined_build_times.txt
+
+      - name: Upload aggregated build times
+        uses: actions/upload-artifact@v3
+        with:
+          name: aggregated-build-times
+          path: combined_build_times.txt
