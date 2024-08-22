@@ -35,19 +35,25 @@ jobs:
         run: |
           echo "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_ENV
           echo "TIMESTAMP=$(date +%s)" >> $GITHUB_ENV
-          echo "CACHE_TAG=$(date +%Y%m%d)-${{ github.run_number }}" >> $GITHUB_ENV
-          echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
-          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
+          echo "CACHE_TAG=$(date +%Y%m%d)-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
+          echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-$TIMESTAMP" >> $GITHUB_ENV
 
       - name: Check for existing images and pull if available
         run: |
-          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-cache-latest; then
+          LATEST_BACKEND_TAG=$(aws ecr describe-images --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[?starts_with(@, `backend-cache-`)] | [0]' --output text)
+          LATEST_FRONTEND_TAG=$(aws ecr describe-images --repository-name $ECR_REPOSITORY --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[?starts_with(@, `frontend-cache-`)] | [0]' --output text)
+
+          if [ "$LATEST_BACKEND_TAG" != "None" ] && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$LATEST_BACKEND_TAG; then
             echo "BACKEND_CACHE_EXISTS=true" >> $GITHUB_ENV
+            echo "BACKEND_CACHE_TAG=$LATEST_BACKEND_TAG" >> $GITHUB_ENV
           else
             echo "BACKEND_CACHE_EXISTS=false" >> $GITHUB_ENV
           fi
-          if docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-cache-latest; then
+
+          if [ "$LATEST_FRONTEND_TAG" != "None" ] && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$LATEST_FRONTEND_TAG; then
             echo "FRONTEND_CACHE_EXISTS=true" >> $GITHUB_ENV
+            echo "FRONTEND_CACHE_TAG=$LATEST_FRONTEND_TAG" >> $GITHUB_ENV
           else
             echo "FRONTEND_CACHE_EXISTS=false" >> $GITHUB_ENV
           fi
@@ -81,8 +87,8 @@ jobs:
             echo "$image_name build time: $build_time seconds"
           }
 
-          build_and_measure "backend" "$BACKEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:backend-cache-latest" "$BACKEND_IMAGE_TAG" "backend-cache-$CACHE_TAG" "./api"
-          build_and_measure "frontend" "$FRONTEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:frontend-cache-latest" "$FRONTEND_IMAGE_TAG" "frontend-cache-$CACHE_TAG" "./frontend"
+          build_and_measure "backend" "$BACKEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_CACHE_TAG" "$BACKEND_IMAGE_TAG" "backend-cache-$CACHE_TAG" "./api"
+          build_and_measure "frontend" "$FRONTEND_CACHE_EXISTS" "$ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_CACHE_TAG" "$FRONTEND_IMAGE_TAG" "frontend-cache-$CACHE_TAG" "./frontend"
 
           echo "===== Build Time Summary ====="
           echo "Backend build time: $BUILD_TIME_BACKEND seconds (Cache: $BACKEND_CACHE_EXISTS)"
