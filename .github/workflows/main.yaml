@@ -38,12 +38,41 @@ jobs:
           echo "BACKEND_IMAGE_TAG=backend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
           echo "FRONTEND_IMAGE_TAG=frontend-${{ github.sha }}-${{ github.run_number }}-${{ env.TIMESTAMP }}" >> $GITHUB_ENV
 
-      - name: Build and push Docker images
+      - name: Build without cache and measure time
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
+          echo "Building backend without cache"
+          time docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG ./api
+          echo "Building frontend without cache"
+          time docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG ./frontend
+
+      - name: Pull latest images for caching
+        continue-on-error: true
+        run: |
+          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:backend-latest
+          docker pull $ECR_REGISTRY/$ECR_REPOSITORY:frontend-latest
+
+      - name: Build with cache and measure time
+        run: |
+          echo "Building backend with cache"
+          time docker build \
+            --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:backend-latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:backend-latest \
+            ./api
+
+          echo "Building frontend with cache"
+          time docker build \
+            --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:frontend-latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:frontend-latest \
+            ./frontend
+
+      - name: Push Docker images
+        run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$BACKEND_IMAGE_TAG
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:backend-latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$FRONTEND_IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:frontend-latest
 
       - name: Fetch EC2 Instance IDs
         run: |
